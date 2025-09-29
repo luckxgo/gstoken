@@ -31,11 +31,10 @@ const (
 
 // LoginRequest 登录请求
 type LoginRequest struct {
-	UserID   string                 `json:"user_id"`
-	Password string                 `json:"password,omitempty"`
-	Device   string                 `json:"device,omitempty"`
-	IP       string                 `json:"ip,omitempty"`
-	Extra    map[string]interface{} `json:"extra,omitempty"`
+	UserID string                 `json:"user_id"`
+	Device string                 `json:"device,omitempty"`
+	IP     string                 `json:"ip,omitempty"`
+	Extra  map[string]interface{} `json:"extra,omitempty"`
 }
 
 // LoginResponse 登录响应
@@ -69,6 +68,16 @@ type LoginInfo struct {
 	IP         string    `json:"ip"`
 	LoginTime  time.Time `json:"login_time"`
 	LastAccess time.Time `json:"last_access"`
+}
+
+// RefreshTokenInfo 刷新Token信息
+type RefreshTokenInfo struct {
+	RefreshToken string                 `json:"refresh_token"`
+	UserID       string                 `json:"user_id"`
+	Device       string                 `json:"device"`
+	CreatedAt    time.Time              `json:"created_at"`
+	ExpiresAt    time.Time              `json:"expires_at"`
+	Extra        map[string]interface{} `json:"extra"`
 }
 
 // Role 角色信息
@@ -106,6 +115,9 @@ type Config struct {
 	Storage  StorageConfig  `json:"storage"`
 	Redis    RedisConfig    `json:"redis"`
 	Database DatabaseConfig `json:"database"`
+
+	// 用户角色提供者（不序列化到JSON）
+	UserRoleProvider UserRoleProvider `json:"-"`
 }
 
 // StorageConfig 存储配置

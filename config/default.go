@@ -1,7 +1,7 @@
 package config
 
 import (
-	"gstoken/internal/core"
+	"gstoken/core"
 	"time"
 )
 

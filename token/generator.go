@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"gstoken/internal/core"
+	"gstoken/core"
 
 	"github.com/google/uuid"
 )

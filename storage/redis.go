@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"time"
 
-	"gstoken/internal/core"
+	"gstoken/core"
 
 	"github.com/redis/go-redis/v9"
 )

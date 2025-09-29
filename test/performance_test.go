@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"gstoken/config"
-	"gstoken/internal/core"
+	"gstoken/core"
 )
 
 // BenchmarkTokenGeneration 基准测试Token生成性能

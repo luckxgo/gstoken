@@ -11,6 +11,8 @@ type AuthEngine interface {
 	Logout(ctx context.Context, token string) error
 	Verify(ctx context.Context, token string) (*UserInfo, error)
 	CheckPermission(ctx context.Context, userID string, permission string) (bool, error)
+	CheckRole(ctx context.Context, userID string, roleID string) (bool, error)
+	GetPermissionService() PermissionService
 }
 
 // TokenGenerator Token生成器接口
@@ -39,14 +41,20 @@ type AuthService interface {
 	Logout(ctx context.Context, token string) error
 	LogoutByUserID(ctx context.Context, userID string) error
 	GetLoginInfo(ctx context.Context, token string) (*LoginInfo, error)
+	RefreshAccessToken(ctx context.Context, refreshToken string) (*LoginResponse, error)
+}
+
+// UserRoleProvider 用户角色提供者接口（由用户实现）
+type UserRoleProvider interface {
+	GetUserRoles(ctx context.Context, userID string) ([]Role, error)
 }
 
 // PermissionService 权限服务接口
 type PermissionService interface {
 	CheckPermission(ctx context.Context, userID, permission string) (bool, error)
-	GetUserRoles(ctx context.Context, userID string) ([]Role, error)
-	AssignRole(ctx context.Context, userID, roleID string) error
-	RevokeRole(ctx context.Context, userID, roleID string) error
+	CheckRole(ctx context.Context, userID, roleID string) (bool, error)
+	// 设置用户角色提供者
+	SetUserRoleProvider(provider UserRoleProvider)
 }
 
 // SessionService 会话服务接口

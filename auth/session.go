@@ -1,0 +1,207 @@
+package auth
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+
+	"gstoken/core"
+)
+
+// SessionService 会话服务实现
+type SessionServiceImpl struct {
+	storage core.Storage
+	config  *core.Config
+}
+
+// NewSessionService 创建新的会话服务
+func NewSessionService(storage core.Storage, config *core.Config) core.SessionService {
+	return &SessionServiceImpl{
+		storage: storage,
+		config:  config,
+	}
+}
+
+// CreateSession 创建会话
+func (s *SessionServiceImpl) CreateSession(ctx context.Context, session *core.Session) error {
+	if session == nil {
+		return errors.New("会话信息不能为空")
+	}
+
+	if session.Token == "" {
+		return errors.New("Token不能为空")
+	}
+
+	if session.UserID == "" {
+		return errors.New("用户ID不能为空")
+	}
+
+	// 序列化会话数据
+	data, err := json.Marshal(session)
+	if err != nil {
+		return fmt.Errorf("序列化会话数据失败: %w", err)
+	}
+
+	// 存储会话数据
+	sessionKey := s.getSessionKey(session.Token)
+	if err := s.storage.Set(ctx, sessionKey, data, s.config.TokenExpire); err != nil {
+		return fmt.Errorf("存储会话数据失败: %w", err)
+	}
+
+	// 存储用户会话映射（用于踢人下线）
+	userSessionKey := s.getUserSessionKey(session.UserID, session.Token)
+	if err := s.storage.Set(ctx, userSessionKey, session.Token, s.config.TokenExpire); err != nil {
+		return fmt.Errorf("存储用户会话映射失败: %w", err)
+	}
+
+	return nil
+}
+
+// GetSession 获取会话
+func (s *SessionServiceImpl) GetSession(ctx context.Context, token string) (*core.Session, error) {
+	if token == "" {
+		return nil, errors.New("Token不能为空")
+	}
+
+	sessionKey := s.getSessionKey(token)
+	data, err := s.storage.Get(ctx, sessionKey)
+	if err != nil {
+		return nil, fmt.Errorf("获取会话数据失败: %w", err)
+	}
+
+	if data == nil {
+		return nil, errors.New("会话不存在")
+	}
+
+	var session core.Session
+	if dataBytes, ok := data.([]byte); ok {
+		if err := json.Unmarshal(dataBytes, &session); err != nil {
+			return nil, fmt.Errorf("解析会话数据失败: %w", err)
+		}
+	} else {
+		// 处理其他类型的数据
+		dataStr := fmt.Sprintf("%v", data)
+		if err := json.Unmarshal([]byte(dataStr), &session); err != nil {
+			return nil, fmt.Errorf("解析会话数据失败: %w", err)
+		}
+	}
+
+	return &session, nil
+}
+
+// UpdateSession 更新会话
+func (s *SessionServiceImpl) UpdateSession(ctx context.Context, session *core.Session) error {
+	if session == nil {
+		return errors.New("会话信息不能为空")
+	}
+
+	if session.Token == "" {
+		return errors.New("Token不能为空")
+	}
+
+	// 检查会话是否存在
+	exists, err := s.storage.Exists(ctx, s.getSessionKey(session.Token))
+	if err != nil {
+		return fmt.Errorf("检查会话是否存在失败: %w", err)
+	}
+
+	if !exists {
+		return errors.New("会话不存在")
+	}
+
+	// 更新会话数据
+	data, err := json.Marshal(session)
+	if err != nil {
+		return fmt.Errorf("序列化会话数据失败: %w", err)
+	}
+
+	sessionKey := s.getSessionKey(session.Token)
+	if err := s.storage.Set(ctx, sessionKey, data, s.config.TokenExpire); err != nil {
+		return fmt.Errorf("更新会话数据失败: %w", err)
+	}
+
+	return nil
+}
+
+// DeleteSession 删除会话
+func (s *SessionServiceImpl) DeleteSession(ctx context.Context, token string) error {
+	if token == "" {
+		return errors.New("Token不能为空")
+	}
+
+	// 先获取会话信息以便删除用户会话映射
+	session, err := s.GetSession(ctx, token)
+	if err != nil {
+		// 如果会话不存在，直接返回成功
+		return nil
+	}
+
+	// 删除会话数据
+	sessionKey := s.getSessionKey(token)
+	if err := s.storage.Delete(ctx, sessionKey); err != nil {
+		return fmt.Errorf("删除会话数据失败: %w", err)
+	}
+
+	// 删除用户会话映射
+	userSessionKey := s.getUserSessionKey(session.UserID, token)
+	if err := s.storage.Delete(ctx, userSessionKey); err != nil {
+		// 删除映射失败不影响主要操作
+	}
+
+	return nil
+}
+
+// KickOut 踢出用户的所有会话
+func (s *SessionServiceImpl) KickOut(ctx context.Context, userID string) error {
+	if userID == "" {
+		return errors.New("用户ID不能为空")
+	}
+
+	// 获取用户的所有会话Token
+	pattern := s.getUserSessionPattern(userID)
+	keys, err := s.storage.Keys(ctx, pattern)
+	if err != nil {
+		return fmt.Errorf("获取用户会话列表失败: %w", err)
+	}
+
+	// 删除所有会话
+	for _, key := range keys {
+		tokenData, err := s.storage.Get(ctx, key)
+		if err != nil {
+			continue
+		}
+
+		var token string
+		if tokenBytes, ok := tokenData.([]byte); ok {
+			token = string(tokenBytes)
+		} else {
+			token = fmt.Sprintf("%v", tokenData)
+		}
+
+		// 删除会话
+		s.DeleteSession(ctx, token)
+	}
+
+	return nil
+}
+
+// KickOutByToken 根据Token踢出会话
+func (s *SessionServiceImpl) KickOutByToken(ctx context.Context, token string) error {
+	return s.DeleteSession(ctx, token)
+}
+
+// getSessionKey 获取会话存储键
+func (s *SessionServiceImpl) getSessionKey(token string) string {
+	return fmt.Sprintf("gstoken:session:%s", token)
+}
+
+// getUserSessionKey 获取用户会话映射键
+func (s *SessionServiceImpl) getUserSessionKey(userID, token string) string {
+	return fmt.Sprintf("gstoken:user_session:%s:%s", userID, token)
+}
+
+// getUserSessionPattern 获取用户会话模式
+func (s *SessionServiceImpl) getUserSessionPattern(userID string) string {
+	return fmt.Sprintf("gstoken:user_session:%s:*", userID)
+}

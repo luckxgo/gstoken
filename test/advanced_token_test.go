@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"gstoken/config"
-	"gstoken/internal/core"
+	"gstoken/core"
 )
 
 // TestJWTStyleToken 测试JWT风格Token

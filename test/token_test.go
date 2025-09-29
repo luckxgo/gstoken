@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"gstoken/config"
-	"gstoken/internal/core"
+	"gstoken/core"
 )
 
 // TestBasicTokenGeneration 测试基础Token生成功能
