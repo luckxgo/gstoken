@@ -92,6 +92,7 @@ func (s *Service) Login(ctx context.Context, req *core.LoginRequest) (*core.Logi
 		IP:         req.IP,
 		LoginTime:  now,
 		LastAccess: now,
+		Extra:      req.Extra,
 	}
 
 	if err := s.storeLoginInfo(ctx, token, loginInfo); err != nil {

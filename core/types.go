@@ -62,12 +62,13 @@ type TokenInfo struct {
 
 // LoginInfo 登录信息
 type LoginInfo struct {
-	UserID     string    `json:"user_id"`
-	Token      string    `json:"token"`
-	Device     string    `json:"device"`
-	IP         string    `json:"ip"`
-	LoginTime  time.Time `json:"login_time"`
-	LastAccess time.Time `json:"last_access"`
+	UserID     string                 `json:"user_id"`
+	Token      string                 `json:"token"`
+	Device     string                 `json:"device"`
+	IP         string                 `json:"ip"`
+	LoginTime  time.Time              `json:"login_time"`
+	LastAccess time.Time              `json:"last_access"`
+	Extra      map[string]interface{} `json:"extra,omitempty"`
 }
 
 // RefreshTokenInfo 刷新Token信息

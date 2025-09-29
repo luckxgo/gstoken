@@ -17,7 +17,6 @@ type MemoryItem struct {
 // MemoryStorage 内存存储实现
 type MemoryStorage struct {
 	data sync.Map
-	mu   sync.RWMutex
 }
 
 // NewMemoryStorage 创建内存存储
@@ -108,6 +107,15 @@ func (m *MemoryStorage) matchPattern(key, pattern string) bool {
 
 // cleanupExpired 清理过期数据
 func (m *MemoryStorage) cleanupExpired() {
+	defer func() {
+		if r := recover(); r != nil {
+			// 记录panic信息，但不让进程退出
+			fmt.Printf("Memory storage cleanup panic recovered: %v\n", r)
+			// 重新启动清理goroutine
+			go m.cleanupExpired()
+		}
+	}()
+
 	ticker := time.NewTicker(time.Minute)
 	defer ticker.Stop()
 
