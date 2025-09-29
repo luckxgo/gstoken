@@ -116,6 +116,9 @@ type Config struct {
 	Redis    RedisConfig    `json:"redis"`
 	Database DatabaseConfig `json:"database"`
 
+	// 键前缀配置
+	KeyPrefix string `json:"key_prefix"` // 存储键前缀，默认为 "gstoken"
+
 	// 用户角色提供者（不序列化到JSON）
 	UserRoleProvider UserRoleProvider `json:"-"`
 }

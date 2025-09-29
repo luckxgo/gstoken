@@ -11,10 +11,11 @@ import (
 
 // GSToken 主要的认证框架实例
 type GSToken struct {
-	config    *core.Config
-	storage   core.Storage
-	generator core.TokenGenerator
-	engine    core.AuthEngine
+	config     *core.Config
+	storage    core.Storage
+	generator  core.TokenGenerator
+	engine     core.AuthEngine
+	keyService *core.KeyService
 }
 
 // New 创建新的GSToken实例
@@ -23,6 +24,9 @@ func New(config *core.Config) *GSToken {
 		config: config,
 	}
 
+	// 初始化键服务
+	gs.keyService = core.NewKeyService(config.KeyPrefix)
+
 	// 初始化存储
 	gs.initStorage()
 
@@ -30,7 +34,7 @@ func New(config *core.Config) *GSToken {
 	gs.generator = token.NewGenerator(config.TokenStyle)
 
 	// 初始化认证引擎
-	gs.engine = auth.NewEngine(config, gs.storage, gs.generator)
+	gs.engine = auth.NewEngine(config, gs.storage, gs.generator, gs.keyService)
 
 	// 如果配置中设置了用户角色提供者，自动配置
 	if config.UserRoleProvider != nil {

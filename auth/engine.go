@@ -14,23 +14,25 @@ type Engine struct {
 	config            *core.Config
 	storage           core.Storage
 	tokenGenerator    core.TokenGenerator
+	keyService        *core.KeyService
 	authService       core.AuthService
 	sessionService    core.SessionService
 	permissionService core.PermissionService
 }
 
 // NewEngine 创建新的认证引擎
-func NewEngine(config *core.Config, storage core.Storage, tokenGenerator core.TokenGenerator) *Engine {
+func NewEngine(config *core.Config, storage core.Storage, tokenGenerator core.TokenGenerator, keyService *core.KeyService) *Engine {
 	engine := &Engine{
 		config:         config,
 		storage:        storage,
 		tokenGenerator: tokenGenerator,
+		keyService:     keyService,
 	}
 
 	// 初始化各个服务
-	engine.sessionService = NewSessionService(storage, config)
-	engine.authService = NewAuthService(storage, tokenGenerator, engine.sessionService, config)
-	engine.permissionService = NewPermissionService(storage)
+	engine.sessionService = NewSessionService(storage, config, keyService)
+	engine.authService = NewAuthService(storage, tokenGenerator, engine.sessionService, config, keyService)
+	engine.permissionService = NewPermissionService(storage, keyService)
 
 	return engine
 }

@@ -18,6 +18,9 @@ func DefaultConfig() *core.Config {
 		AutoRenew:    true,            // 自动续期
 		RememberDays: 7,               // 记住登录7天
 
+		// 键前缀配置
+		KeyPrefix: "gstoken", // 默认键前缀
+
 		// 存储配置
 		Storage: core.StorageConfig{
 			Type: "memory", // 默认内存存储

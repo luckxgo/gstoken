@@ -11,13 +11,15 @@ import (
 // PermissionService 权限服务默认实现
 type PermissionService struct {
 	storage          core.Storage
+	keyService       *core.KeyService
 	userRoleProvider core.UserRoleProvider
 }
 
 // NewPermissionService 创建新的权限服务
-func NewPermissionService(storage core.Storage) core.PermissionService {
+func NewPermissionService(storage core.Storage, keyService *core.KeyService) core.PermissionService {
 	return &PermissionService{
-		storage: storage,
+		storage:    storage,
+		keyService: keyService,
 	}
 }
 

@@ -16,15 +16,17 @@ type Service struct {
 	tokenGenerator core.TokenGenerator
 	sessionService core.SessionService
 	config         *core.Config
+	keyService     *core.KeyService
 }
 
 // NewAuthService 创建新的认证服务
-func NewAuthService(storage core.Storage, tokenGenerator core.TokenGenerator, sessionService core.SessionService, config *core.Config) core.AuthService {
+func NewAuthService(storage core.Storage, tokenGenerator core.TokenGenerator, sessionService core.SessionService, config *core.Config, keyService *core.KeyService) core.AuthService {
 	return &Service{
 		storage:        storage,
 		tokenGenerator: tokenGenerator,
 		sessionService: sessionService,
 		config:         config,
+		keyService:     keyService,
 	}
 }
 
@@ -137,7 +139,7 @@ func (s *Service) Logout(ctx context.Context, token string) error {
 	loginInfo, err := s.GetLoginInfo(ctx, token)
 	if err == nil && loginInfo != nil {
 		// 删除用户会话映射
-		userSessionKey := s.getUserSessionKey(loginInfo.UserID, token)
+		userSessionKey := s.keyService.UserSessionKey(loginInfo.UserID, token)
 		s.storage.Delete(ctx, userSessionKey)
 	}
 
@@ -147,7 +149,7 @@ func (s *Service) Logout(ctx context.Context, token string) error {
 	}
 
 	// 删除登录信息
-	loginKey := s.getLoginInfoKey(token)
+	loginKey := s.keyService.LoginInfoKey(token)
 	if err := s.storage.Delete(ctx, loginKey); err != nil {
 		return fmt.Errorf("删除登录信息失败: %w", err)
 	}
@@ -162,7 +164,7 @@ func (s *Service) LogoutByUserID(ctx context.Context, userID string) error {
 	}
 
 	// 获取用户的所有会话Token
-	userSessionPattern := fmt.Sprintf("gstoken:user_session:%s:*", userID)
+	userSessionPattern := s.keyService.UserSessionPattern(userID)
 	sessionKeys, err := s.storage.Keys(ctx, userSessionPattern)
 	if err != nil {
 		return fmt.Errorf("获取用户会话键失败: %w", err)
@@ -186,7 +188,7 @@ func (s *Service) LogoutByUserID(ctx context.Context, userID string) error {
 		s.sessionService.DeleteSession(ctx, token)
 
 		// 删除对应的登录信息
-		loginKey := s.getLoginInfoKey(token)
+		loginKey := s.keyService.LoginInfoKey(token)
 		s.storage.Delete(ctx, loginKey)
 
 		// 删除用户会话映射
@@ -198,7 +200,7 @@ func (s *Service) LogoutByUserID(ctx context.Context, userID string) error {
 
 // GetLoginInfo 获取登录信息
 func (s *Service) GetLoginInfo(ctx context.Context, token string) (*core.LoginInfo, error) {
-	loginKey := s.getLoginInfoKey(token)
+	loginKey := s.keyService.LoginInfoKey(token)
 	data, err := s.storage.Get(ctx, loginKey)
 	if err != nil {
 		return nil, fmt.Errorf("获取登录信息失败: %w", err)
@@ -244,7 +246,7 @@ func (s *Service) handleLoginMode(ctx context.Context, req *core.LoginRequest) e
 // kickOutSameDevice 踢出同一设备的会话
 func (s *Service) kickOutSameDevice(ctx context.Context, userID, device string) error {
 	// 获取用户的所有会话Token
-	pattern := fmt.Sprintf("gstoken:user_session:%s:*", userID)
+	pattern := s.keyService.UserSessionPattern(userID)
 	keys, err := s.storage.Keys(ctx, pattern)
 	if err != nil {
 		return err
@@ -280,7 +282,7 @@ func (s *Service) kickOutSameDevice(ctx context.Context, userID, device string) 
 
 // storeLoginInfo 存储登录信息
 func (s *Service) storeLoginInfo(ctx context.Context, token string, loginInfo *core.LoginInfo) error {
-	loginKey := s.getLoginInfoKey(token)
+	loginKey := s.keyService.LoginInfoKey(token)
 	data, err := json.Marshal(loginInfo)
 	if err != nil {
 		return err
@@ -289,14 +291,9 @@ func (s *Service) storeLoginInfo(ctx context.Context, token string, loginInfo *c
 	return s.storage.Set(ctx, loginKey, data, s.config.TokenExpire)
 }
 
-// getLoginInfoKey 获取登录信息的存储键
-func (s *Service) getLoginInfoKey(token string) string {
-	return fmt.Sprintf("gstoken:login:%s", token)
-}
-
 // storeRefreshToken 存储刷新Token信息
 func (s *Service) storeRefreshToken(ctx context.Context, refreshToken string, refreshInfo *core.RefreshTokenInfo) error {
-	refreshKey := s.getRefreshTokenKey(refreshToken)
+	refreshKey := s.keyService.RefreshTokenKey(refreshToken)
 	data, err := json.Marshal(refreshInfo)
 	if err != nil {
 		return err
@@ -307,7 +304,7 @@ func (s *Service) storeRefreshToken(ctx context.Context, refreshToken string, re
 
 // getRefreshTokenInfo 获取刷新Token信息
 func (s *Service) getRefreshTokenInfo(ctx context.Context, refreshToken string) (*core.RefreshTokenInfo, error) {
-	refreshKey := s.getRefreshTokenKey(refreshToken)
+	refreshKey := s.keyService.RefreshTokenKey(refreshToken)
 	data, err := s.storage.Get(ctx, refreshKey)
 	if err != nil {
 		return nil, fmt.Errorf("获取刷新Token信息失败: %w", err)
@@ -347,7 +344,7 @@ func (s *Service) RefreshAccessToken(ctx context.Context, refreshToken string) (
 	// 检查刷新Token是否过期
 	if time.Now().After(refreshInfo.ExpiresAt) {
 		// 删除过期的刷新Token
-		s.storage.Delete(ctx, s.getRefreshTokenKey(refreshToken))
+		s.storage.Delete(ctx, s.keyService.RefreshTokenKey(refreshToken))
 		return nil, errors.New("刷新Token已过期")
 	}
 
@@ -374,7 +371,7 @@ func (s *Service) RefreshAccessToken(ctx context.Context, refreshToken string) (
 	}
 
 	// 删除旧的刷新Token
-	s.storage.Delete(ctx, s.getRefreshTokenKey(refreshToken))
+	s.storage.Delete(ctx, s.keyService.RefreshTokenKey(refreshToken))
 
 	// 创建新的会话
 	now := time.Now()
@@ -435,18 +432,8 @@ func (s *Service) RefreshAccessToken(ctx context.Context, refreshToken string) (
 	return response, nil
 }
 
-// getRefreshTokenKey 获取刷新Token的存储键
-func (s *Service) getRefreshTokenKey(refreshToken string) string {
-	return fmt.Sprintf("gstoken:refresh:%s", refreshToken)
-}
-
 // storeUserSessionMapping 存储用户会话映射
 func (s *Service) storeUserSessionMapping(ctx context.Context, userID, token string) error {
-	userSessionKey := s.getUserSessionKey(userID, token)
+	userSessionKey := s.keyService.UserSessionKey(userID, token)
 	return s.storage.Set(ctx, userSessionKey, token, s.config.TokenExpire)
-}
-
-// getUserSessionKey 获取用户会话映射的存储键
-func (s *Service) getUserSessionKey(userID, token string) string {
-	return fmt.Sprintf("gstoken:user_session:%s:%s", userID, token)
 }
