@@ -3,10 +3,11 @@ package test
 import (
 	"context"
 	"encoding/json"
-	"gstoken"
-	"gstoken/config"
-	"gstoken/core"
-	"gstoken/web"
+	"github.com/luckxgo/gstoken"
+	"github.com/luckxgo/gstoken/config"
+	"github.com/luckxgo/gstoken/core"
+	"github.com/luckxgo/gstoken/web"
+
 	"net/http"
 	"net/http/httptest"
 	"testing"

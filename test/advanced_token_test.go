@@ -5,14 +5,14 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
-	"gstoken"
+	"github.com/luckxgo/gstoken"
+	"github.com/luckxgo/gstoken/config"
 	"regexp"
 	"strings"
 	"testing"
 	"time"
 
-	"gstoken/config"
-	"gstoken/core"
+	"github.com/luckxgo/gstoken/core"
 )
 
 // TestJWTStyleToken 测试JWT风格Token

@@ -1,13 +1,12 @@
 package test
 
 import (
-	"gstoken"
+	"github.com/luckxgo/gstoken"
+	"github.com/luckxgo/gstoken/config"
+	"github.com/luckxgo/gstoken/core"
 	"sync"
 	"testing"
 	"time"
-
-	"gstoken/config"
-	"gstoken/core"
 )
 
 // BenchmarkTokenGeneration 基准测试Token生成性能

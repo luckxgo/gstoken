@@ -3,10 +3,10 @@ package gstoken
 import (
 	"context"
 	"fmt"
-	"gstoken/auth"
-	"gstoken/core"
-	"gstoken/storage"
-	"gstoken/token"
+	"github.com/luckxgo/gstoken/auth"
+	"github.com/luckxgo/gstoken/core"
+	"github.com/luckxgo/gstoken/storage"
+	"github.com/luckxgo/gstoken/token"
 )
 
 // GSToken 主要的认证框架实例

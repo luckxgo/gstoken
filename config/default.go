@@ -1,7 +1,7 @@
 package config
 
 import (
-	"gstoken/core"
+	"github.com/luckxgo/gstoken/core"
 	"time"
 )
 

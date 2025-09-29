@@ -7,9 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"gstoken/core"
-
 	"github.com/google/uuid"
+	"github.com/luckxgo/gstoken/core"
 )
 
 // Generator Token生成器实现

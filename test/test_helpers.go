@@ -3,7 +3,7 @@ package test
 import (
 	"context"
 	"encoding/json"
-	"gstoken/core"
+	"github.com/luckxgo/gstoken/core"
 )
 
 // testUserRoleProvider 测试用的用户角色提供者

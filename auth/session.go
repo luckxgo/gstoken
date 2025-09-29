@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 
-	"gstoken/core"
+	"github.com/luckxgo/gstoken/core"
 )
 
 // SessionService 会话服务实现

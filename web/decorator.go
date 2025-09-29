@@ -3,10 +3,11 @@ package web
 import (
 	"context"
 	"fmt"
-	"gstoken/core"
 	"reflect"
 	"runtime"
 	"strings"
+
+	"github.com/luckxgo/gstoken/core"
 )
 
 // AuthDecorator 方法式鉴权装饰器

@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"time"
 
-	"gstoken/core"
+	"github.com/luckxgo/gstoken/core"
 )
 
 // Service 认证服务实现

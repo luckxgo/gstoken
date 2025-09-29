@@ -4,9 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/luckxgo/gstoken/core"
 	"time"
-
-	"gstoken/core"
 )
 
 // Engine 核心认证引擎实现

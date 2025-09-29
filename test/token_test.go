@@ -1,11 +1,10 @@
 package test
 
 import (
-	"gstoken"
+	"github.com/luckxgo/gstoken"
+	"github.com/luckxgo/gstoken/config"
+	"github.com/luckxgo/gstoken/core"
 	"testing"
-
-	"gstoken/config"
-	"gstoken/core"
 )
 
 // TestBasicTokenGeneration 测试基础Token生成功能

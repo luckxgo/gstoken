@@ -2,7 +2,8 @@ package web
 
 import (
 	"context"
-	"gstoken/core"
+
+	"github.com/luckxgo/gstoken/core"
 )
 
 // GSTokenWebAdapter GSToken 的 Web 适配器实现

@@ -2,8 +2,9 @@ package web
 
 import (
 	"context"
-	"gstoken/core"
 	"net/http"
+
+	"github.com/luckxgo/gstoken/core"
 )
 
 // WebContext 通用的 Web 上下文接口，用于适配不同的 Web 框架

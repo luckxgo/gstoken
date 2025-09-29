@@ -1,4 +1,4 @@
-module gstoken
+module github.com/luckxgo/gstoken
 
 go 1.23.0
 

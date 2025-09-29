@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"gstoken/core"
+	"github.com/luckxgo/gstoken/core"
 )
 
 // PermissionService 权限服务默认实现

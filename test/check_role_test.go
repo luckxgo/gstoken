@@ -2,12 +2,11 @@ package test
 
 import (
 	"context"
+	"github.com/luckxgo/gstoken"
+	"github.com/luckxgo/gstoken/config"
+	"github.com/luckxgo/gstoken/core"
 	"testing"
 	"time"
-
-	"gstoken"
-	"gstoken/config"
-	"gstoken/core"
 )
 
 func TestCheckRole(t *testing.T) {

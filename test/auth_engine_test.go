@@ -4,12 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/luckxgo/gstoken"
+	"github.com/luckxgo/gstoken/config"
+	"github.com/luckxgo/gstoken/core"
 	"testing"
 	"time"
-
-	"gstoken"
-	"gstoken/config"
-	"gstoken/core"
 )
 
 // setRoleInStorage 直接在存储中设置角色数据（模拟业务系统创建的角色）
