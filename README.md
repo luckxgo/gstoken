@@ -354,11 +354,12 @@ go test -cover ./...
 
 ## 📚 示例代码
 
-- [基础认证示例](examples/basic/main.go)
-- [Gin框架集成](examples/gin/main.go)
-- [Redis存储示例](examples/redis/main.go)
-- [权限控制示例](examples/permission/main.go)
-- [自定义Token生成](examples/custom_token/main.go)
+- [基础认证示例](examples/basic/main.go) - 演示基本的登录、验证、登出功能
+- [Gin框架集成](examples/gin/main.go) - Web API 中间件和路由保护
+- [Redis存储示例](examples/redis/main.go) - 使用 Redis 作为存储后端
+- [权限控制示例](examples/permission/main.go) - 完整的 RBAC 权限管理
+- [自定义Token生成](examples/custom_token/main.go) - 各种 Token 生成策略
+- [示例说明文档](examples/README.md) - 详细的示例运行指南
 
 ## 🔗 相关链接
 
