@@ -42,6 +42,17 @@ web/
 
 ### 1. 基本中间件使用
 
+（新增）角色或权限任一满足（RequireRoleOrPermission）
+```go
+r := gin.New()
+auth := web.NewGinAuthMiddleware(gsAdapter, nil)
+
+// 同时支持角色或权限，只要满足任意一类条件即可放行
+r.GET("/mixed/any", auth.RequireRoleOrPermission([]string{"admin"}, []string{"settings:read"}), func(c *gin.Context) {
+    c.JSON(200, gin.H{"ok": true})
+})
+```
+
 ```go
 package main
 

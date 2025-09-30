@@ -167,33 +167,10 @@ func main() {
     
     // 需要认证的路由组
     auth := r.Group("/api")
-    auth.Use(func(c *gin.Context) {
-        // 从请求头获取Token
-        token := c.GetHeader("Authorization")
-        if token == "" {
-            token = c.GetHeader("X-Token")
-        }
-        if token == "" {
-            c.JSON(401, gin.H{"error": "未提供认证Token"})
-            c.Abort()
-            return
-        }
-        
-        // 验证Token
-        userInfo, err := gs.GetAuthEngine().Verify(c, token)
-        if err != nil {
-            c.JSON(401, gin.H{"error": "Token验证失败"})
-            c.Abort()
-            return
-        }
-        
-        // 设置上下文
-        c.Set(web.ContextKeyUserID, userInfo.ID)
-        c.Set(web.ContextKeyToken, token)
-        c.Set(web.ContextKeyUserInfo, userInfo)
-        
-        c.Next()
-    })
+    // 使用框架自带中间件
+    gsAdapter := web.NewGSTokenWebAdapter(gs)
+    authMiddleware := web.NewGinAuthMiddleware(gsAdapter, web.DefaultAuthConfig())
+    auth.Use(authMiddleware.RequireAuth())
     {
         auth.GET("/profile", func(c *gin.Context) {
             userID, _ := c.Get(web.ContextKeyUserID)
@@ -216,6 +193,20 @@ func main() {
     
     r.Run(":8080")
 }
+```
+
+### 角色或权限任一满足（RequireRoleOrPermission）
+当用户具备指定“角色集合”中的任意一个角色，或具备指定“权限集合”中的任意一个权限时即放行。
+
+示例：
+```go
+r := gin.New()
+auth := web.NewGinAuthMiddleware(web.NewGSTokenWebAdapter(gs), nil)
+
+// 只要具备 admin 角色 或 settings:read 权限，任一满足即可
+r.GET("/mixed/any", auth.RequireRoleOrPermission([]string{"admin"}, []string{"settings:read"}), func(c *gin.Context) {
+  c.JSON(http.StatusOK, gin.H{"ok": true})
+})
 ```
 
 ## 🔧 配置说明
