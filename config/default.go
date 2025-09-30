@@ -29,20 +29,25 @@ func DefaultConfig() *core.Config {
 
 		// Redis配置
 		Redis: core.RedisConfig{
-			Addr:     core.DefaultRedisAddr,
-			Password: core.DefaultRedisPassword,
-			DB:       core.DefaultRedisDB,
-			PoolSize: core.DefaultRedisPoolSize,
-		},
-
-		// 数据库配置
-		Database: core.DatabaseConfig{
-			Driver:   core.DefaultDatabaseDriver,
-			Host:     core.DefaultDatabaseHost,
-			Port:     core.DefaultDatabasePort,
-			Username: core.DefaultDatabaseUser,
-			Password: core.DefaultDatabasePass,
-			Database: core.DefaultDatabaseName,
+			Addr:            core.DefaultRedisAddr,
+			Username:        core.DefaultRedisUsername,
+			Password:        core.DefaultRedisPassword,
+			DB:              core.DefaultRedisDB,
+			PoolSize:        core.DefaultRedisPoolSize,
+			MinIdleConns:    core.DefaultRedisMinIdleConns,
+			ConnMaxIdleTime: core.DefaultRedisConnMaxIdleTime,
+			ClientName:      core.DefaultRedisClientName,
+			MaxRetries:      core.DefaultRedisMaxRetries,
+			MinRetryBackoff: core.DefaultRedisMinRetryBackoff,
+			MaxRetryBackoff: core.DefaultRedisMaxRetryBackoff,
+			DialTimeout:     core.DefaultRedisDialTimeout,
+			ReadTimeout:     core.DefaultRedisReadTimeout,
+			WriteTimeout:    core.DefaultRedisWriteTimeout,
+			PoolTimeout:     core.DefaultRedisPoolTimeout,
+			ClusterEnabled:  false,
+			ClusterAddrs:    nil,
+			TLSEnabled:      core.DefaultRedisTLSEnabled,
+			TLSSkipVerify:   core.DefaultRedisTLSSkipVerify,
 		},
 	}
 }

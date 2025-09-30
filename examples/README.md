@@ -59,6 +59,19 @@ cd examples/redis
 go run main.go
 ```
 
+### 3.1 Redis 集群示例 (`redis_cluster/main.go`)
+演示使用 Redis Cluster（需先准备本地或远程集群）：
+- 集群连接参数
+- 键扫描（采用 SCAN，遍历主分片）
+
+**运行前准备：**
+请确保已有集群环境，示例默认使用 `localhost:7001,7002,7003`，可按需修改。
+
+**运行方式：**
+```bash
+go run examples/redis_cluster/main.go
+```
+
 ### 4. 权限控制示例 (`permission/main.go`)
 展示完整的 RBAC 权限控制系统：
 - 用户角色管理
@@ -104,6 +117,9 @@ go run examples/gin/main.go
 
 # Redis 示例（需要先启动 Redis）
 go run examples/redis/main.go
+
+# Redis 集群示例（需要准备 Redis Cluster）
+go run examples/redis_cluster/main.go
 
 # 权限控制示例
 go run examples/permission/main.go

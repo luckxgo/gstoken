@@ -251,6 +251,31 @@ cfg := config.NewBuilder().
     Build()
 ```
 
+### Redis集群配置
+
+```go
+// 使用 Redis 集群（go-redis v9）
+cfg := config.NewBuilder().
+    WithRedisCluster([]string{
+        "10.0.0.1:6379",
+        "10.0.0.2:6379",
+        "10.0.0.3:6379",
+    }, "password").
+    WithRedisUsername("user").                               // 如启用 ACL
+    WithRedisClientName("gstoken-client").                   // 客户端标识
+    WithRedisRetries(5, 10*time.Millisecond, 500*time.Millisecond). // 重试策略
+    WithRedisTimeouts(5*time.Second, 3*time.Second, 3*time.Second, 4*time.Second). // 超时
+    WithRedisPool(100, 20, 5*time.Minute).                   // 连接池：PoolSize/MinIdle/ConnMaxIdleTime
+    WithRedisTLS(false, false).                              // 如需 TLS，改为 true
+    Build()
+
+gs := gstoken.New(cfg)
+```
+
+注意：
+- 集群模式内部使用 ClusterClient，键扫描采用 SCAN 并遍历主分片，避免 KEYS 带来的阻塞与兼容性问题。
+- 如果你的 Redis 使用 TLS 或 ACL，请正确设置 Username/Password/TLS 参数。
+
 ### 配置构建器
 
 ```go

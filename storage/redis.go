@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"time"
 
@@ -12,17 +13,61 @@ import (
 
 // RedisStorage Redis存储实现
 type RedisStorage struct {
-	client *redis.Client
+	client redis.UniversalClient
 }
 
 // NewRedisStorage 创建Redis存储
 func NewRedisStorage(config core.RedisConfig) *RedisStorage {
-	rdb := redis.NewClient(&redis.Options{
-		Addr:     config.Addr,
-		Password: config.Password,
-		DB:       config.DB,
-		PoolSize: config.PoolSize,
-	})
+	var rdb redis.UniversalClient
+	if config.ClusterEnabled && len(config.ClusterAddrs) > 0 {
+		opts := &redis.ClusterOptions{
+			Addrs:           config.ClusterAddrs,
+			Username:        config.Username,
+			Password:        config.Password,
+			MaxRetries:      config.MaxRetries,
+			MinRetryBackoff: config.MinRetryBackoff,
+			MaxRetryBackoff: config.MaxRetryBackoff,
+			DialTimeout:     config.DialTimeout,
+			ReadTimeout:     config.ReadTimeout,
+			WriteTimeout:    config.WriteTimeout,
+			PoolSize:        config.PoolSize,
+			MinIdleConns:    config.MinIdleConns,
+			PoolTimeout:     config.PoolTimeout,
+			ConnMaxIdleTime: config.ConnMaxIdleTime,
+		}
+		if config.ClientName != "" {
+			opts.ClientName = config.ClientName
+		}
+		if config.TLSEnabled {
+			opts.TLSConfig = &tls.Config{InsecureSkipVerify: config.TLSSkipVerify}
+		}
+		rdb = redis.NewClusterClient(opts)
+	} else {
+		opts := &redis.Options{
+			Network:         "tcp",
+			Addr:            config.Addr,
+			Username:        config.Username,
+			Password:        config.Password,
+			DB:              config.DB,
+			MaxRetries:      config.MaxRetries,
+			MinRetryBackoff: config.MinRetryBackoff,
+			MaxRetryBackoff: config.MaxRetryBackoff,
+			DialTimeout:     config.DialTimeout,
+			ReadTimeout:     config.ReadTimeout,
+			WriteTimeout:    config.WriteTimeout,
+			PoolSize:        config.PoolSize,
+			MinIdleConns:    config.MinIdleConns,
+			PoolTimeout:     config.PoolTimeout,
+			ConnMaxIdleTime: config.ConnMaxIdleTime,
+		}
+		if config.ClientName != "" {
+			opts.ClientName = config.ClientName
+		}
+		if config.TLSEnabled {
+			opts.TLSConfig = &tls.Config{InsecureSkipVerify: config.TLSSkipVerify}
+		}
+		rdb = redis.NewClient(opts)
+	}
 
 	return &RedisStorage{
 		client: rdb,
@@ -64,7 +109,59 @@ func (r *RedisStorage) Exists(ctx context.Context, key string) (bool, error) {
 
 // Keys 获取匹配的键列表
 func (r *RedisStorage) Keys(ctx context.Context, pattern string) ([]string, error) {
-	return r.client.Keys(ctx, pattern).Result()
+	// 使用 SCAN 遍历，避免 KEYS 的阻塞与集群不兼容问题
+	if pattern == "" {
+		pattern = "*"
+	}
+
+	// 去重集合
+	seen := make(map[string]struct{})
+	keys := make([]string, 0, 256)
+
+	// 集群模式：遍历所有主分片
+	if cc, ok := r.client.(*redis.ClusterClient); ok {
+		err := cc.ForEachMaster(ctx, func(ctx context.Context, cli *redis.Client) error {
+			var cursor uint64
+			for {
+				res, next, err := cli.Scan(ctx, cursor, pattern, 1000).Result()
+				if err != nil {
+					return err
+				}
+				for _, k := range res {
+					if _, exists := seen[k]; !exists {
+						seen[k] = struct{}{}
+						keys = append(keys, k)
+					}
+				}
+				if next == 0 {
+					break
+				}
+				cursor = next
+			}
+			return nil
+		})
+		return keys, err
+	}
+
+	// 单机或哨兵统一客户端：直接 SCAN
+	var cursor uint64
+	for {
+		res, next, err := r.client.Scan(ctx, cursor, pattern, 1000).Result()
+		if err != nil {
+			return nil, err
+		}
+		for _, k := range res {
+			if _, exists := seen[k]; !exists {
+				seen[k] = struct{}{}
+				keys = append(keys, k)
+			}
+		}
+		if next == 0 {
+			break
+		}
+		cursor = next
+	}
+	return keys, nil
 }
 
 // Close 关闭连接

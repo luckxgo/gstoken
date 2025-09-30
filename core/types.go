@@ -21,25 +21,50 @@ const (
 
 	// 权限相关常量
 	PermissionWildcard = "*"
-	
+
 	// 存储类型常量
 	StorageTypeRedis    = "redis"
 	StorageTypeMemory   = "memory"
 	StorageTypeDatabase = "database"
-	
+
+	/*
+		默认配置常量说明
+
+		Redis 默认值分组：
+		- 单机连接：DefaultRedisAddr / DefaultRedisUsername / DefaultRedisPassword / DefaultRedisDB
+		- 连接池与超时：DefaultRedisPoolSize / DefaultRedisMinIdleConns / DefaultRedisConnMaxIdleTime 以及
+		  DefaultRedisMaxRetries / DefaultRedisMinRetryBackoff / DefaultRedisMaxRetryBackoff /
+		  DefaultRedisDialTimeout / DefaultRedisReadTimeout / DefaultRedisWriteTimeout / DefaultRedisPoolTimeout
+		- TLS：DefaultRedisTLSEnabled / DefaultRedisTLSSkipVerify
+		- 其他：默认键前缀、数据库默认参数、记住登录默认天数
+	*/
 	// 默认配置常量
-	DefaultKeyPrefix      = "gstoken"
-	DefaultRedisAddr      = "localhost:6379"
-	DefaultRedisPassword  = ""
-	DefaultRedisDB        = 0
-	DefaultRedisPoolSize  = 10
-	DefaultDatabaseDriver = "mysql"
-	DefaultDatabaseHost   = "localhost"
-	DefaultDatabasePort   = 3306
-	DefaultDatabaseUser   = "root"
-	DefaultDatabasePass   = ""
-	DefaultDatabaseName   = "gstoken"
-	DefaultRememberDays   = 7
+	DefaultKeyPrefix     = "gstoken"
+	DefaultRedisAddr     = "localhost:6379"
+	DefaultRedisPassword = ""
+	DefaultRedisDB       = 0
+	DefaultRedisPoolSize = 10
+	// 新增默认值
+	DefaultRedisUsername        = ""
+	DefaultRedisMaxRetries      = 3
+	DefaultRedisMinRetryBackoff = 8 * time.Millisecond
+	DefaultRedisMaxRetryBackoff = 512 * time.Millisecond
+	DefaultRedisDialTimeout     = 5 * time.Second
+	DefaultRedisReadTimeout     = 3 * time.Second
+	DefaultRedisWriteTimeout    = 3 * time.Second
+	DefaultRedisPoolTimeout     = 4 * time.Second
+	DefaultRedisMinIdleConns    = 0
+	DefaultRedisConnMaxIdleTime = 5 * time.Minute
+	DefaultRedisClientName      = ""
+	DefaultRedisTLSEnabled      = false
+	DefaultRedisTLSSkipVerify   = false
+	DefaultDatabaseDriver       = "mysql"
+	DefaultDatabaseHost         = "localhost"
+	DefaultDatabasePort         = 3306
+	DefaultDatabaseUser         = "root"
+	DefaultDatabasePass         = ""
+	DefaultDatabaseName         = "gstoken"
+	DefaultRememberDays         = 7
 )
 
 // 错误消息常量
@@ -221,12 +246,46 @@ type StorageConfig struct {
 	Type string `json:"type"` // redis, memory, database
 }
 
-// RedisConfig Redis配置
+/*
+RedisConfig Redis连接与存储配置
+
+支持单机与集群模式，覆盖连接认证、连接池、重试与超时、TLS 等常用参数。
+- 单机参数：Addr/Username/Password/DB
+- 连接池：PoolSize/MinIdleConns/ConnMaxIdleTime
+- 重试与超时：MaxRetries/MinRetryBackoff/MaxRetryBackoff/DialTimeout/ReadTimeout/WriteTimeout/PoolTimeout
+- 客户端标识：ClientName
+- 集群参数：ClusterEnabled/ClusterAddrs
+- TLS：TLSEnabled/TLSSkipVerify
+*/
 type RedisConfig struct {
+	// 单机参数
 	Addr     string `json:"addr"`
+	Username string `json:"username"`
 	Password string `json:"password"`
 	DB       int    `json:"db"`
-	PoolSize int    `json:"pool_size"`
+
+	// 连接池与客户端标识
+	PoolSize        int           `json:"pool_size"`
+	MinIdleConns    int           `json:"min_idle_conns"`
+	ConnMaxIdleTime time.Duration `json:"conn_max_idle_time"`
+	ClientName      string        `json:"client_name"`
+
+	// 重试与超时
+	MaxRetries      int           `json:"max_retries"`
+	MinRetryBackoff time.Duration `json:"min_retry_backoff"`
+	MaxRetryBackoff time.Duration `json:"max_retry_backoff"`
+	DialTimeout     time.Duration `json:"dial_timeout"`
+	ReadTimeout     time.Duration `json:"read_timeout"`
+	WriteTimeout    time.Duration `json:"write_timeout"`
+	PoolTimeout     time.Duration `json:"pool_timeout"`
+
+	// 集群参数
+	ClusterEnabled bool     `json:"cluster_enabled"`
+	ClusterAddrs   []string `json:"cluster_addrs"`
+
+	// 基本 TLS 开关（简单场景）
+	TLSEnabled    bool `json:"tls_enabled"`
+	TLSSkipVerify bool `json:"tls_skip_verify"`
 }
 
 // DatabaseConfig 数据库配置

@@ -66,6 +66,65 @@ func (b *ConfigBuilder) WithRedisStorage(addr, password string, db int) *ConfigB
 	b.config.Redis.Addr = addr
 	b.config.Redis.Password = password
 	b.config.Redis.DB = db
+	// 关闭集群模式
+	b.config.Redis.ClusterEnabled = false
+	b.config.Redis.ClusterAddrs = nil
+	return b
+}
+
+// WithRedisUsername 设置用户名
+func (b *ConfigBuilder) WithRedisUsername(username string) *ConfigBuilder {
+	b.config.Redis.Username = username
+	return b
+}
+
+// WithRedisPool 设置连接池相关参数
+func (b *ConfigBuilder) WithRedisPool(poolSize, minIdle int, idleTimeout time.Duration) *ConfigBuilder {
+	b.config.Redis.PoolSize = poolSize
+	b.config.Redis.MinIdleConns = minIdle
+	b.config.Redis.ConnMaxIdleTime = idleTimeout
+	return b
+}
+
+// WithRedisTimeouts 设置连接与读写超时以及池等待超时
+func (b *ConfigBuilder) WithRedisTimeouts(dial, read, write, pool time.Duration) *ConfigBuilder {
+	b.config.Redis.DialTimeout = dial
+	b.config.Redis.ReadTimeout = read
+	b.config.Redis.WriteTimeout = write
+	b.config.Redis.PoolTimeout = pool
+	return b
+}
+
+// WithRedisRetries 设置重试参数
+func (b *ConfigBuilder) WithRedisRetries(max int, minBackoff, maxBackoff time.Duration) *ConfigBuilder {
+	b.config.Redis.MaxRetries = max
+	b.config.Redis.MinRetryBackoff = minBackoff
+	b.config.Redis.MaxRetryBackoff = maxBackoff
+	return b
+}
+
+// WithRedisClientName 设置客户端名称
+func (b *ConfigBuilder) WithRedisClientName(name string) *ConfigBuilder {
+	b.config.Redis.ClientName = name
+	return b
+}
+
+// WithRedisTLS 设置 TLS 开关（基础）
+func (b *ConfigBuilder) WithRedisTLS(enable bool, skipVerify bool) *ConfigBuilder {
+	b.config.Redis.TLSEnabled = enable
+	b.config.Redis.TLSSkipVerify = skipVerify
+	return b
+}
+
+// WithRedisCluster 设置Redis集群存储
+func (b *ConfigBuilder) WithRedisCluster(addrs []string, password string) *ConfigBuilder {
+	b.config.Storage.Type = core.StorageTypeRedis
+	b.config.Redis.ClusterEnabled = true
+	b.config.Redis.ClusterAddrs = addrs
+	b.config.Redis.Password = password
+	// 集群模式不使用单机的 Addr/DB
+	b.config.Redis.Addr = ""
+	b.config.Redis.DB = 0
 	return b
 }
 
