@@ -39,9 +39,9 @@ func (s *Service) Login(ctx context.Context, req *core.LoginRequest) (*core.Logi
 
 	// 生成Token
 	tokenExtra := map[string]interface{}{
-		"user_id": req.UserID,
-		"device":  req.Device,
-		"ip":      req.IP,
+		core.TokenExtraKeyUserID: req.UserID,
+		core.TokenExtraKeyDevice: req.Device,
+		core.TokenExtraKeyIP:     req.IP,
 	}
 
 	// 合并额外参数
@@ -51,19 +51,19 @@ func (s *Service) Login(ctx context.Context, req *core.LoginRequest) (*core.Logi
 
 	token, err := s.tokenGenerator.Generate(tokenExtra)
 	if err != nil {
-		return nil, fmt.Errorf("生成Token失败: %w", err)
+		return nil, fmt.Errorf("%s: %w", core.ErrMsgGenerateToken, err)
 	}
 
 	// 生成刷新Token（如果配置了）
 	var refreshToken string
 	if s.config.RefreshExpire > 0 {
 		refreshTokenExtra := map[string]interface{}{
-			"user_id": req.UserID,
-			"type":    "refresh",
+			core.TokenExtraKeyUserID: req.UserID,
+			core.TokenExtraKeyType:   core.TokenTypeRefresh,
 		}
 		refreshToken, err = s.tokenGenerator.Generate(refreshTokenExtra)
 		if err != nil {
-			return nil, fmt.Errorf("生成刷新Token失败: %w", err)
+			return nil, fmt.Errorf("%s: %w", core.ErrMsgGenerateRefreshToken, err)
 		}
 	}
 
@@ -81,7 +81,7 @@ func (s *Service) Login(ctx context.Context, req *core.LoginRequest) (*core.Logi
 	}
 
 	if err := s.sessionService.CreateSession(ctx, session); err != nil {
-		return nil, fmt.Errorf("创建会话失败: %w", err)
+		return nil, fmt.Errorf("%s: %w", core.ErrMsgCreateSession, err)
 	}
 
 	// 存储登录信息
@@ -96,12 +96,12 @@ func (s *Service) Login(ctx context.Context, req *core.LoginRequest) (*core.Logi
 	}
 
 	if err := s.storeLoginInfo(ctx, token, loginInfo); err != nil {
-		return nil, fmt.Errorf("存储登录信息失败: %w", err)
+		return nil, fmt.Errorf("%s: %w", core.ErrMsgStoreLoginInfo, err)
 	}
 
 	// 创建用户会话映射，用于根据userID查找Token
 	if err := s.storeUserSessionMapping(ctx, req.UserID, token); err != nil {
-		return nil, fmt.Errorf("存储用户会话映射失败: %w", err)
+		return nil, fmt.Errorf("%s: %w", core.ErrMsgStoreUserSessionMap, err)
 	}
 
 	// 存储刷新Token（如果生成了）
@@ -115,7 +115,7 @@ func (s *Service) Login(ctx context.Context, req *core.LoginRequest) (*core.Logi
 			Extra:        req.Extra,
 		}
 		if err := s.storeRefreshToken(ctx, refreshToken, refreshInfo); err != nil {
-			return nil, fmt.Errorf("存储刷新Token失败: %w", err)
+			return nil, fmt.Errorf("%s: %w", core.ErrMsgStoreRefreshToken, err)
 		}
 	}
 
@@ -146,13 +146,13 @@ func (s *Service) Logout(ctx context.Context, token string) error {
 
 	// 删除会话
 	if err := s.sessionService.DeleteSession(ctx, token); err != nil {
-		return fmt.Errorf("删除会话失败: %w", err)
+		return fmt.Errorf("%s: %w", core.ErrMsgDeleteSession, err)
 	}
 
 	// 删除登录信息
 	loginKey := s.keyService.LoginInfoKey(token)
 	if err := s.storage.Delete(ctx, loginKey); err != nil {
-		return fmt.Errorf("删除登录信息失败: %w", err)
+		return fmt.Errorf("%s: %w", core.ErrMsgDeleteLoginInfo, err)
 	}
 
 	return nil
@@ -161,14 +161,14 @@ func (s *Service) Logout(ctx context.Context, token string) error {
 // LogoutByUserID 根据用户ID登出所有会话
 func (s *Service) LogoutByUserID(ctx context.Context, userID string) error {
 	if userID == "" {
-		return errors.New("用户ID不能为空")
+		return errors.New(core.ErrMsgUserIDEmpty)
 	}
 
 	// 获取用户的所有会话Token
 	userSessionPattern := s.keyService.UserSessionPattern(userID)
 	sessionKeys, err := s.storage.Keys(ctx, userSessionPattern)
 	if err != nil {
-		return fmt.Errorf("获取用户会话键失败: %w", err)
+		return fmt.Errorf("%s: %w", core.ErrMsgGetUserSessionKeys, err)
 	}
 
 	// 删除每个Token对应的会话和登录信息
@@ -209,21 +209,21 @@ func (s *Service) GetLoginInfo(ctx context.Context, token string) (*core.LoginIn
 	loginKey := s.keyService.LoginInfoKey(token)
 	data, err := s.storage.Get(ctx, loginKey)
 	if err != nil {
-		return nil, fmt.Errorf("获取登录信息失败: %w", err)
+		return nil, fmt.Errorf("%s: %w", core.ErrMsgGetLoginInfo, err)
 	}
 
 	if data == nil {
-		return nil, errors.New("登录信息不存在")
+		return nil, errors.New(core.ErrMsgLoginInfoNotExists)
 	}
 
 	var loginInfo core.LoginInfo
 	dataBytes, ok := data.([]byte)
 	if !ok {
-		return nil, fmt.Errorf("存储数据格式错误，期望字节数组")
+		return nil, fmt.Errorf(core.ErrMsgStorageDataFormat)
 	}
 
 	if err := json.Unmarshal(dataBytes, &loginInfo); err != nil {
-		return nil, fmt.Errorf("解析登录信息失败: %w", err)
+		return nil, fmt.Errorf("%s: %w", core.ErrMsgParseLoginInfo, err)
 	}
 
 	return &loginInfo, nil
@@ -307,21 +307,21 @@ func (s *Service) getRefreshTokenInfo(ctx context.Context, refreshToken string) 
 	refreshKey := s.keyService.RefreshTokenKey(refreshToken)
 	data, err := s.storage.Get(ctx, refreshKey)
 	if err != nil {
-		return nil, fmt.Errorf("获取刷新Token信息失败: %w", err)
+		return nil, fmt.Errorf("%s: %w", core.ErrMsgGetRefreshTokenInfo, err)
 	}
 
 	if data == nil {
-		return nil, errors.New("刷新Token不存在")
+		return nil, errors.New(core.ErrMsgRefreshTokenNotExists)
 	}
 
 	var refreshInfo core.RefreshTokenInfo
 	dataBytes, ok := data.([]byte)
 	if !ok {
-		return nil, fmt.Errorf("存储数据格式错误，期望字节数组")
+		return nil, fmt.Errorf(core.ErrMsgStorageDataFormat)
 	}
 
 	if err := json.Unmarshal(dataBytes, &refreshInfo); err != nil {
-		return nil, fmt.Errorf("解析刷新Token信息失败: %w", err)
+		return nil, fmt.Errorf("%s: %w", core.ErrMsgParseRefreshTokenInfo, err)
 	}
 
 	return &refreshInfo, nil
@@ -330,42 +330,42 @@ func (s *Service) getRefreshTokenInfo(ctx context.Context, refreshToken string) 
 // RefreshAccessToken 刷新访问Token
 func (s *Service) RefreshAccessToken(ctx context.Context, refreshToken string) (*core.LoginResponse, error) {
 	if refreshToken == "" {
-		return nil, errors.New("刷新Token不能为空")
+		return nil, errors.New(core.ErrMsgRefreshTokenEmpty)
 	}
 
 	// 获取刷新Token信息
 	refreshInfo, err := s.getRefreshTokenInfo(ctx, refreshToken)
 	if err != nil {
-		return nil, fmt.Errorf("获取刷新Token信息失败: %w", err)
+		return nil, fmt.Errorf("%s: %w", core.ErrMsgGetRefreshTokenInfo, err)
 	}
 
 	// 检查刷新Token是否过期
 	if time.Now().After(refreshInfo.ExpiresAt) {
 		// 删除过期的刷新Token
 		s.storage.Delete(ctx, s.keyService.RefreshTokenKey(refreshToken))
-		return nil, errors.New("刷新Token已过期")
+		return nil, errors.New(core.ErrMsgRefreshTokenExpired)
 	}
 
 	// 生成新的访问Token
 	tokenExtra := map[string]interface{}{
-		"user_id": refreshInfo.UserID,
-		"refresh": true,
+		core.TokenExtraKeyUserID: refreshInfo.UserID,
+		core.TokenFlagRefresh:    true,
 	}
 
 	newAccessToken, err := s.tokenGenerator.Generate(tokenExtra)
 	if err != nil {
-		return nil, fmt.Errorf("生成新访问Token失败: %w", err)
+		return nil, fmt.Errorf("%s: %w", core.ErrMsgGenerateNewAccessToken, err)
 	}
 
 	// 生成新的刷新Token
 	newRefreshTokenExtra := map[string]interface{}{
-		"user_id": refreshInfo.UserID,
-		"type":    "refresh",
+		core.TokenExtraKeyUserID: refreshInfo.UserID,
+		core.TokenExtraKeyType:   core.TokenTypeRefresh,
 	}
 
 	newRefreshToken, err := s.tokenGenerator.Generate(newRefreshTokenExtra)
 	if err != nil {
-		return nil, fmt.Errorf("生成新刷新Token失败: %w", err)
+		return nil, fmt.Errorf("%s: %w", core.ErrMsgGenerateNewRefreshToken, err)
 	}
 
 	// 删除旧的刷新Token
@@ -385,7 +385,7 @@ func (s *Service) RefreshAccessToken(ctx context.Context, refreshToken string) (
 	}
 
 	if err := s.sessionService.CreateSession(ctx, session); err != nil {
-		return nil, fmt.Errorf("创建新会话失败: %w", err)
+		return nil, fmt.Errorf("%s: %w", core.ErrMsgCreateNewSession, err)
 	}
 
 	// 存储新的登录信息
@@ -399,7 +399,7 @@ func (s *Service) RefreshAccessToken(ctx context.Context, refreshToken string) (
 	}
 
 	if err := s.storeLoginInfo(ctx, newAccessToken, loginInfo); err != nil {
-		return nil, fmt.Errorf("存储新登录信息失败: %w", err)
+		return nil, fmt.Errorf("%s: %w", core.ErrMsgStoreNewLoginInfo, err)
 	}
 
 	// 存储新的刷新Token
@@ -413,7 +413,7 @@ func (s *Service) RefreshAccessToken(ctx context.Context, refreshToken string) (
 	}
 
 	if err := s.storeRefreshToken(ctx, newRefreshToken, newRefreshInfo); err != nil {
-		return nil, fmt.Errorf("存储新刷新Token失败: %w", err)
+		return nil, fmt.Errorf("%s: %w", core.ErrMsgStoreNewRefreshToken, err)
 	}
 
 	// 构造响应

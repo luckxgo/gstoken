@@ -2,11 +2,12 @@ package test
 
 import (
 	"context"
+	"testing"
+	"time"
+
 	"github.com/luckxgo/gstoken"
 	"github.com/luckxgo/gstoken/config"
 	"github.com/luckxgo/gstoken/core"
-	"testing"
-	"time"
 )
 
 func TestConfigBuilder(t *testing.T) {
@@ -104,8 +105,8 @@ func TestConfigBuilder(t *testing.T) {
 			t.Errorf("RememberDays配置错误: 期望 30, 实际 %d", cfg.RememberDays)
 		}
 
-		if cfg.Storage.Type != "redis" {
-			t.Errorf("Storage类型配置错误: 期望 redis, 实际 %s", cfg.Storage.Type)
+		if cfg.Storage.Type != core.StorageTypeRedis {
+			t.Errorf("Storage类型配置错误: 期望 %s, 实际 %s", core.StorageTypeRedis, cfg.Storage.Type)
 		}
 
 		t.Log("链式配置测试通过")

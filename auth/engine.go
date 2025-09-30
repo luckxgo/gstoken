@@ -4,8 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/luckxgo/gstoken/core"
 	"time"
+
+	"github.com/luckxgo/gstoken/core"
 )
 
 // Engine 核心认证引擎实现
@@ -39,11 +40,11 @@ func NewEngine(config *core.Config, storage core.Storage, tokenGenerator core.To
 // Login 用户登录
 func (e *Engine) Login(ctx context.Context, req *core.LoginRequest) (*core.LoginResponse, error) {
 	if req == nil {
-		return nil, errors.New("登录请求不能为空")
+		return nil, errors.New(core.ErrMsgLoginRequestEmpty)
 	}
 
 	if req.UserID == "" {
-		return nil, errors.New("用户ID不能为空")
+		return nil, errors.New(core.ErrMsgUserIDEmpty)
 	}
 
 	// 调用认证服务进行登录
@@ -53,7 +54,7 @@ func (e *Engine) Login(ctx context.Context, req *core.LoginRequest) (*core.Login
 // Logout 用户登出
 func (e *Engine) Logout(ctx context.Context, token string) error {
 	if token == "" {
-		return errors.New("Token不能为空")
+		return errors.New(core.ErrMsgTokenEmpty)
 	}
 
 	return e.authService.Logout(ctx, token)
@@ -62,24 +63,24 @@ func (e *Engine) Logout(ctx context.Context, token string) error {
 // Verify 验证Token并获取用户信息
 func (e *Engine) Verify(ctx context.Context, token string) (*core.UserInfo, error) {
 	if token == "" {
-		return nil, errors.New("Token不能为空")
+		return nil, errors.New(core.ErrMsgTokenEmpty)
 	}
 
 	// 获取登录信息
 	loginInfo, err := e.authService.GetLoginInfo(ctx, token)
 	if err != nil {
-		return nil, fmt.Errorf("获取登录信息失败: %w", err)
+		return nil, fmt.Errorf("%s: %w", core.ErrMsgGetLoginInfo, err)
 	}
 
 	// 检查Token是否过期
 	if time.Now().After(loginInfo.LastAccess.Add(e.config.TokenExpire)) {
-		return nil, errors.New("Token已过期")
+		return nil, errors.New(core.ErrMsgTokenExpired)
 	}
 
 	// 更新最后访问时间
 	session, err := e.sessionService.GetSession(ctx, token)
 	if err != nil {
-		return nil, fmt.Errorf("获取会话信息失败: %w", err)
+		return nil, fmt.Errorf("%s: %w", core.ErrMsgGetSessionInfo, err)
 	}
 
 	session.LastAccess = time.Now()
@@ -102,11 +103,11 @@ func (e *Engine) Verify(ctx context.Context, token string) (*core.UserInfo, erro
 // CheckPermission 检查用户权限
 func (e *Engine) CheckPermission(ctx context.Context, userID string, permission string) (bool, error) {
 	if userID == "" {
-		return false, errors.New("用户ID不能为空")
+		return false, errors.New(core.ErrMsgUserIDEmpty)
 	}
 
 	if permission == "" {
-		return false, errors.New("权限标识不能为空")
+		return false, errors.New(core.ErrMsgPermissionEmpty)
 	}
 
 	return e.permissionService.CheckPermission(ctx, userID, permission)

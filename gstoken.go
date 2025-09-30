@@ -8,6 +8,7 @@ import (
 	"github.com/luckxgo/gstoken/core"
 	"github.com/luckxgo/gstoken/storage"
 	"github.com/luckxgo/gstoken/token"
+	"github.com/luckxgo/gstoken/web"
 )
 
 // GSToken 主要的认证框架实例
@@ -48,9 +49,9 @@ func New(config *core.Config) *GSToken {
 // initStorage 初始化存储
 func (gs *GSToken) initStorage() {
 	switch gs.config.Storage.Type {
-	case "redis":
+	case core.StorageTypeRedis:
 		gs.storage = storage.NewRedisStorage(gs.config.Redis)
-	case "memory":
+	case core.StorageTypeMemory:
 		gs.storage = storage.NewMemoryStorage()
 	default:
 		// 默认使用内存存储
@@ -93,7 +94,7 @@ func (gs *GSToken) Logout(ctx context.Context, token string) error {
 // LogoutFromContext 从上下文获取 token 进行用户登出
 func (gs *GSToken) LogoutFromContext(ctx context.Context) error {
 	// 从上下文中获取 token
-	tokenValue := ctx.Value("token")
+	tokenValue := ctx.Value(web.ContextKeyToken)
 	if tokenValue == nil {
 		return fmt.Errorf("token not found in context")
 	}

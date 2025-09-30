@@ -1,8 +1,9 @@
 package config
 
 import (
-	"github.com/luckxgo/gstoken/core"
 	"time"
+
+	"github.com/luckxgo/gstoken/core"
 )
 
 // DefaultConfig 默认配置
@@ -14,34 +15,34 @@ func DefaultConfig() *core.Config {
 		TokenStyle:    core.StyleUUID,     // 默认UUID风格
 
 		// 登录配置
-		LoginMode:    core.MultiLogin, // 默认多端登录
-		AutoRenew:    true,            // 自动续期
-		RememberDays: 7,               // 记住登录7天
+		LoginMode:    core.MultiLogin,          // 默认多端登录
+		AutoRenew:    true,                     // 自动续期
+		RememberDays: core.DefaultRememberDays, // 记住登录7天
 
 		// 键前缀配置
-		KeyPrefix: "gstoken", // 默认键前缀
+		KeyPrefix: core.DefaultKeyPrefix, // 默认键前缀
 
 		// 存储配置
 		Storage: core.StorageConfig{
-			Type: "memory", // 默认内存存储
+			Type: core.StorageTypeMemory, // 默认内存存储
 		},
 
 		// Redis配置
 		Redis: core.RedisConfig{
-			Addr:     "localhost:6379",
-			Password: "",
-			DB:       0,
-			PoolSize: 10,
+			Addr:     core.DefaultRedisAddr,
+			Password: core.DefaultRedisPassword,
+			DB:       core.DefaultRedisDB,
+			PoolSize: core.DefaultRedisPoolSize,
 		},
 
 		// 数据库配置
 		Database: core.DatabaseConfig{
-			Driver:   "mysql",
-			Host:     "localhost",
-			Port:     3306,
-			Username: "root",
-			Password: "",
-			Database: "gstoken",
+			Driver:   core.DefaultDatabaseDriver,
+			Host:     core.DefaultDatabaseHost,
+			Port:     core.DefaultDatabasePort,
+			Username: core.DefaultDatabaseUser,
+			Password: core.DefaultDatabasePass,
+			Database: core.DefaultDatabaseName,
 		},
 	}
 }
@@ -49,6 +50,6 @@ func DefaultConfig() *core.Config {
 // RedisConfig Redis存储配置
 func RedisConfig() *core.Config {
 	config := DefaultConfig()
-	config.Storage.Type = "redis"
+	config.Storage.Type = core.StorageTypeRedis
 	return config
 }

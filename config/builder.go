@@ -1,8 +1,9 @@
 package config
 
 import (
-	"github.com/luckxgo/gstoken/core"
 	"time"
+
+	"github.com/luckxgo/gstoken/core"
 )
 
 // ConfigBuilder 配置构建器
@@ -61,7 +62,7 @@ func (b *ConfigBuilder) WithRememberDays(days int) *ConfigBuilder {
 
 // WithRedisStorage 设置Redis存储
 func (b *ConfigBuilder) WithRedisStorage(addr, password string, db int) *ConfigBuilder {
-	b.config.Storage.Type = "redis"
+	b.config.Storage.Type = core.StorageTypeRedis
 	b.config.Redis.Addr = addr
 	b.config.Redis.Password = password
 	b.config.Redis.DB = db
@@ -70,13 +71,13 @@ func (b *ConfigBuilder) WithRedisStorage(addr, password string, db int) *ConfigB
 
 // WithMemoryStorage 设置内存存储
 func (b *ConfigBuilder) WithMemoryStorage() *ConfigBuilder {
-	b.config.Storage.Type = "memory"
+	b.config.Storage.Type = core.StorageTypeMemory
 	return b
 }
 
 // WithDatabaseStorage 设置数据库存储
 func (b *ConfigBuilder) WithDatabaseStorage(driver, host string, port int, username, password, database string) *ConfigBuilder {
-	b.config.Storage.Type = "database"
+	b.config.Storage.Type = core.StorageTypeDatabase
 	b.config.Database.Driver = driver
 	b.config.Database.Host = host
 	b.config.Database.Port = port
