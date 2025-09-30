@@ -42,7 +42,7 @@ func (p *rp) GetRolePermissions(ctx context.Context, roleID string) ([]string, e
 	return p.perms[roleID], nil
 }
 
-func doReq(r *gin.Engine, method, path, token string) *httptest.ResponseRecorder {
+func doReqMixed(r *gin.Engine, method, path, token string) *httptest.ResponseRecorder {
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(method, path, nil)
 	if token != "" {
@@ -100,25 +100,25 @@ func TestGinRequireRoleOrPermission(t *testing.T) {
 	})
 
 	// 1) 具备 settings:read 的用户 => 200
-	w := doReq(r, "GET", "/mixed/any", respHasPerm.Token)
+	w := doReqMixed(r, "GET", "/mixed/any", respHasPerm.Token)
 	if w.Code != http.StatusOK {
 		t.Fatalf("hasPermUser expected 200, got %d body=%s", w.Code, w.Body.String())
 	}
 
 	// 2) 具备 admin 角色的用户 => 200
-	w = doReq(r, "GET", "/mixed/any", respAdmin.Token)
+	w = doReqMixed(r, "GET", "/mixed/any", respAdmin.Token)
 	if w.Code != http.StatusOK {
 		t.Fatalf("adminUser expected 200, got %d body=%s", w.Code, w.Body.String())
 	}
 
 	// 3) guest 用户既无角色也无该权限 => 403
-	w = doReq(r, "GET", "/mixed/any", respGuest.Token)
+	w = doReqMixed(r, "GET", "/mixed/any", respGuest.Token)
 	if w.Code != http.StatusForbidden {
 		t.Fatalf("guestUser expected 403, got %d body=%s", w.Code, w.Body.String())
 	}
 
 	// 4) 未携带 Token => 401
-	w = doReq(r, "GET", "/mixed/any", "")
+	w = doReqMixed(r, "GET", "/mixed/any", "")
 	if w.Code != http.StatusUnauthorized {
 		t.Fatalf("no token expected 401, got %d body=%s", w.Code, w.Body.String())
 	}
