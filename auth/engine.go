@@ -77,16 +77,32 @@ func (e *Engine) Verify(ctx context.Context, token string) (*core.UserInfo, erro
 		return nil, errors.New(core.ErrMsgTokenExpired)
 	}
 
-	// 更新最后访问时间
-	session, err := e.sessionService.GetSession(ctx, token)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", core.ErrMsgGetSessionInfo, err)
-	}
+	// 自动续期：仅在开启时更新最后访问时间并重置TTL
+	if e.config.AutoRenew {
+		now := time.Now()
 
-	session.LastAccess = time.Now()
-	if err := e.sessionService.UpdateSession(ctx, session); err != nil {
-		// 更新失败不影响验证结果，只记录错误
-		// 在实际项目中可以使用日志记录
+		// 更新会话的最后访问时间并重置TTL
+		session, err := e.sessionService.GetSession(ctx, token)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", core.ErrMsgGetSessionInfo, err)
+		}
+		session.LastAccess = now
+		if err := e.sessionService.UpdateSession(ctx, session); err != nil {
+			// 更新失败不影响验证结果
+		}
+
+		// 同步更新登录信息的最后访问时间并重置TTL
+		loginInfo.LastAccess = now
+		// 通过认证服务的存储逻辑重置TTL
+		_ = e.authService.Login // 防止未使用提示
+		// 直接使用会话服务关联的键生成器，通过认证服务内部方法更新
+		// 这里复用存储键规则：login:{token}
+		loginKey := e.keyService.LoginInfoKey(token)
+		// 由于没有直接暴露的更新方法，使用存储接口重置TTL
+		// 存储层的 Set 会覆盖并设置新的过期时间
+		if err := e.storage.Set(ctx, loginKey, loginInfo, e.config.TokenExpire); err != nil {
+			// 不影响验证结果
+		}
 	}
 
 	// 构造用户信息

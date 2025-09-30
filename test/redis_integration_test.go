@@ -3,6 +3,8 @@ package test
 import (
 	"context"
 	"encoding/json"
+	"os"
+	"strconv"
 	"testing"
 	"time"
 
@@ -14,23 +16,47 @@ import (
 
 // TestRedisIntegration 测试使用 Redis 存储的完整认证流程
 func TestRedisIntegration(t *testing.T) {
+	// 从环境读取 Redis 配置，提供更稳健的探测
+	addr := os.Getenv("GSTOKEN_REDIS_ADDR")
+	if addr == "" {
+		addr = "localhost:6379"
+	}
+	password := os.Getenv("GSTOKEN_REDIS_PASSWORD")
+	db := 2
+	if v := os.Getenv("GSTOKEN_REDIS_DB"); v != "" {
+		if parsed, err := strconv.Atoi(v); err == nil {
+			db = parsed
+		}
+	}
+
 	// 创建 Redis 客户端
 	client := redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
-		Password: "",
-		DB:       2, // 使用 DB 2 避免与其他数据冲突
+		Addr:     addr,
+		Password: password,
+		DB:       db, // 默认使用 DB 2 避免与其他数据冲突
 	})
 
-	// 测试 Redis 连接
-	ctx := context.Background()
+	// 使用短时上下文进行连通性与写权限探测
+	ctx, cancel := context.WithTimeout(context.Background(), 800*time.Millisecond)
+	defer cancel()
+
+	// 探测连接
 	if err := client.Ping(ctx).Err(); err != nil {
-		t.Skipf("Redis 连接失败，跳过测试: %v", err)
+		t.Skipf("Redis 连接失败，跳过测试: %v (addr=%s, db=%d)", err, addr, db)
 	}
+
+	// 探测写权限
+	probeKey := "__gstoken_test_probe"
+	if err := client.Set(ctx, probeKey, "ok", time.Second).Err(); err != nil {
+		t.Skipf("Redis 写入探测失败，跳过测试: %v (addr=%s, db=%d)", err, addr, db)
+	}
+	// 清理探测键
+	_ = client.Del(ctx, probeKey).Err()
 
 	// 清理测试数据
 	defer func() {
-		client.FlushDB(ctx)
-		client.Close()
+		_ = client.FlushDB(context.Background())
+		_ = client.Close()
 	}()
 
 	// 创建测试用的角色提供者
@@ -86,7 +112,7 @@ func TestRedisIntegration(t *testing.T) {
 
 		// 3. 检查角色权限
 		t.Log("\n=== 步骤3: 检查角色权限 ===")
-		hasAdminRole, err := engine.CheckRole(ctx, token, "admin")
+		hasAdminRole, err := engine.CheckRole(ctx, testUserID, "admin")
 		if err != nil {
 			t.Fatalf("检查管理员角色失败: %v", err)
 		}
@@ -97,7 +123,7 @@ func TestRedisIntegration(t *testing.T) {
 
 		// 4. 检查权限
 		t.Log("\n=== 步骤4: 检查权限 ===")
-		hasReadPerm, err := engine.CheckPermission(ctx, token, "user:read")
+		hasReadPerm, err := engine.CheckPermission(ctx, testUserID, "user:read")
 		if err != nil {
 			t.Fatalf("检查读取权限失败: %v", err)
 		}

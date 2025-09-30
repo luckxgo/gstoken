@@ -54,9 +54,16 @@ func (s *Service) Login(ctx context.Context, req *core.LoginRequest) (*core.Logi
 		return nil, fmt.Errorf("%s: %w", core.ErrMsgGenerateToken, err)
 	}
 
-	// 生成刷新Token（如果配置了）
+	// 生成刷新Token（支持记住登录）
 	var refreshToken string
+	var refreshExpire time.Duration
 	if s.config.RefreshExpire > 0 {
+		refreshExpire = s.config.RefreshExpire
+	} else if s.config.RememberDays > 0 {
+		refreshExpire = time.Duration(s.config.RememberDays) * 24 * time.Hour
+	}
+
+	if refreshExpire > 0 {
 		refreshTokenExtra := map[string]interface{}{
 			core.TokenExtraKeyUserID: req.UserID,
 			core.TokenExtraKeyType:   core.TokenTypeRefresh,
@@ -106,14 +113,16 @@ func (s *Service) Login(ctx context.Context, req *core.LoginRequest) (*core.Logi
 
 	// 存储刷新Token（如果生成了）
 	if refreshToken != "" {
+		exp := refreshExpire
 		refreshInfo := &core.RefreshTokenInfo{
 			RefreshToken: refreshToken,
 			UserID:       req.UserID,
 			Device:       req.Device,
 			CreatedAt:    now,
-			ExpiresAt:    now.Add(s.config.RefreshExpire),
+			ExpiresAt:    now.Add(exp),
 			Extra:        req.Extra,
 		}
+		// 使用实际的过期时间写入存储
 		if err := s.storeRefreshToken(ctx, refreshToken, refreshInfo); err != nil {
 			return nil, fmt.Errorf("%s: %w", core.ErrMsgStoreRefreshToken, err)
 		}
