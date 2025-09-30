@@ -49,4 +49,4 @@ func (h *GinHelper) MustGetToken(c *gin.Context) string {
 }
 
 // 全局 Gin 辅助实例
-var Gin = &GinHelper{}
+var Helper = &GinHelper{}

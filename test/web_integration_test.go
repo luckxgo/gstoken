@@ -3,6 +3,7 @@ package test
 import (
 	"context"
 	"encoding/json"
+
 	"github.com/luckxgo/gstoken"
 	"github.com/luckxgo/gstoken/config"
 	"github.com/luckxgo/gstoken/core"
@@ -110,7 +111,7 @@ func TestGinMiddlewareIntegration(t *testing.T) {
 	auth.Use(authMiddleware.RequireAuth())
 	{
 		auth.GET("/profile", func(c *gin.Context) {
-			userID, _ := web.Gin.GetUserID(c)
+			userID, _ := web.Helper.GetUserID(c)
 			c.JSON(http.StatusOK, gin.H{"user_id": userID})
 		})
 	}
@@ -395,7 +396,7 @@ func TestOptionalAuth(t *testing.T) {
 	authMiddleware := web.NewGinAuthMiddleware(gsAdapter, nil)
 
 	r.GET("/content", authMiddleware.OptionalAuth(), func(c *gin.Context) {
-		userID, isLoggedIn := web.Gin.GetUserID(c)
+		userID, isLoggedIn := web.Helper.GetUserID(c)
 
 		if isLoggedIn {
 			c.JSON(http.StatusOK, gin.H{

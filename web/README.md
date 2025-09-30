@@ -74,7 +74,7 @@ func main() {
     {
         auth.GET("/profile", func(c *gin.Context) {
             // 使用常量获取用户信息
-            userID, _ := web.Gin.GetUserID(c)
+            userID, _ := web.Helper.GetUserID(c)
             c.JSON(200, gin.H{"user_id": userID})
         })
     }
@@ -116,14 +116,14 @@ config := &web.AuthConfig{
 ```go
 func profileHandler(c *gin.Context) {
     // 使用辅助函数获取用户信息
-    userID, exists := web.Gin.GetUserID(c)
+    userID, exists := web.Helper.GetUserID(c)
     if !exists {
         c.JSON(400, gin.H{"error": "user not found"})
         return
     }
     
-    token, _ := web.Gin.GetToken(c)
-    userInfo, _ := web.Gin.GetUserInfo(c)
+    token, _ := web.Helper.GetToken(c)
+    userInfo, _ := web.Helper.GetUserInfo(c)
     
     c.JSON(200, gin.H{
         "user_id":   userID,
