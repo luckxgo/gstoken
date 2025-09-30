@@ -2,33 +2,27 @@ package test
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+	"testing"
+	"time"
+
 	"github.com/luckxgo/gstoken"
 	"github.com/luckxgo/gstoken/config"
 	"github.com/luckxgo/gstoken/core"
-	"testing"
-	"time"
 )
 
 // setRoleInStorage 直接在存储中设置角色数据（模拟业务系统创建的角色）
 func setRoleInStorage(ctx context.Context, storage core.Storage, role *core.Role) error {
 	roleKey := fmt.Sprintf("gstoken:role:%s", role.ID)
-	data, err := json.Marshal(role)
-	if err != nil {
-		return err
-	}
-	return storage.Set(ctx, roleKey, data, 0) // 角色信息不过期
+	// 直接存储 role 对象，让 storage.Set 内部进行 JSON 序列化
+	return storage.Set(ctx, roleKey, role, 0) // 角色信息不过期
 }
 
 // setUserRoleInStorage 直接在存储中设置用户角色映射（模拟业务系统分配角色）
 func setUserRoleInStorage(ctx context.Context, storage core.Storage, userID string, roleIDs []string) error {
 	userRoleKey := fmt.Sprintf("gstoken:user_role:%s", userID)
-	data, err := json.Marshal(roleIDs)
-	if err != nil {
-		return err
-	}
-	return storage.Set(ctx, userRoleKey, data, 0) // 用户角色映射不过期
+	// 直接存储 roleIDs，让 storage.Set 内部进行 JSON 序列化
+	return storage.Set(ctx, userRoleKey, roleIDs, 0) // 用户角色映射不过期
 }
 
 func TestAuthEngine(t *testing.T) {

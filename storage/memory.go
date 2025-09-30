@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"sync"
@@ -31,13 +32,19 @@ func NewMemoryStorage() *MemoryStorage {
 
 // Set 设置键值
 func (m *MemoryStorage) Set(ctx context.Context, key string, value interface{}, expire time.Duration) error {
+	// 与 Redis 存储保持一致，序列化为 JSON 字节数组
+	data, err := json.Marshal(value)
+	if err != nil {
+		return err
+	}
+
 	var expireTime time.Time
 	if expire > 0 {
 		expireTime = time.Now().Add(expire)
 	}
 
 	item := &MemoryItem{
-		Value:      value,
+		Value:      data, // 存储序列化后的字节数组
 		ExpireTime: expireTime,
 	}
 

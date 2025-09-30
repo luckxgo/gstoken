@@ -39,15 +39,9 @@ func (s *SessionServiceImpl) CreateSession(ctx context.Context, session *core.Se
 		return errors.New("用户ID不能为空")
 	}
 
-	// 序列化会话数据
-	data, err := json.Marshal(session)
-	if err != nil {
-		return fmt.Errorf("序列化会话数据失败: %w", err)
-	}
-
-	// 存储会话数据
+	// 存储会话数据 - 直接存储 session 对象，让 storage.Set 内部进行 JSON 序列化
 	sessionKey := s.keyService.SessionKey(session.Token)
-	if err := s.storage.Set(ctx, sessionKey, data, s.config.TokenExpire); err != nil {
+	if err := s.storage.Set(ctx, sessionKey, session, s.config.TokenExpire); err != nil {
 		return fmt.Errorf("存储会话数据失败: %w", err)
 	}
 
@@ -77,16 +71,13 @@ func (s *SessionServiceImpl) GetSession(ctx context.Context, token string) (*cor
 	}
 
 	var session core.Session
-	if dataBytes, ok := data.([]byte); ok {
-		if err := json.Unmarshal(dataBytes, &session); err != nil {
-			return nil, fmt.Errorf("解析会话数据失败: %w", err)
-		}
-	} else {
-		// 处理其他类型的数据
-		dataStr := fmt.Sprintf("%v", data)
-		if err := json.Unmarshal([]byte(dataStr), &session); err != nil {
-			return nil, fmt.Errorf("解析会话数据失败: %w", err)
-		}
+	dataBytes, ok := data.([]byte)
+	if !ok {
+		return nil, fmt.Errorf("会话数据格式错误，期望字节数组")
+	}
+
+	if err := json.Unmarshal(dataBytes, &session); err != nil {
+		return nil, fmt.Errorf("解析会话数据失败: %w", err)
 	}
 
 	return &session, nil
@@ -112,14 +103,9 @@ func (s *SessionServiceImpl) UpdateSession(ctx context.Context, session *core.Se
 		return errors.New("会话不存在")
 	}
 
-	// 更新会话数据
-	data, err := json.Marshal(session)
-	if err != nil {
-		return fmt.Errorf("序列化会话数据失败: %w", err)
-	}
-
+	// 更新会话数据 - 直接存储 session 对象，让 storage.Set 内部进行 JSON 序列化
 	sessionKey := s.keyService.SessionKey(session.Token)
-	if err := s.storage.Set(ctx, sessionKey, data, s.config.TokenExpire); err != nil {
+	if err := s.storage.Set(ctx, sessionKey, session, s.config.TokenExpire); err != nil {
 		return fmt.Errorf("更新会话数据失败: %w", err)
 	}
 
@@ -174,11 +160,16 @@ func (s *SessionServiceImpl) KickOut(ctx context.Context, userID string) error {
 			continue
 		}
 
+		tokenBytes, ok := tokenData.([]byte)
+		if !ok {
+			continue
+		}
+
+		// 反序列化 JSON 字符串
 		var token string
-		if tokenBytes, ok := tokenData.([]byte); ok {
+		if err := json.Unmarshal(tokenBytes, &token); err != nil {
+			// 如果反序列化失败，尝试直接使用字节数组
 			token = string(tokenBytes)
-		} else {
-			token = fmt.Sprintf("%v", tokenData)
 		}
 
 		// 删除会话

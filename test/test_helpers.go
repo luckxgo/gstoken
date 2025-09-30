@@ -3,6 +3,8 @@ package test
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+
 	"github.com/luckxgo/gstoken/core"
 )
 
@@ -21,19 +23,13 @@ func (p *testUserRoleProvider) GetUserRoles(ctx context.Context, userID string) 
 
 	var roleIDs []string
 	if roleIDsData != nil {
-		// 尝试解析为字符串数组
-		if roleIDsBytes, ok := roleIDsData.([]byte); ok {
-			// 如果是字节数组，直接解析
-			err = json.Unmarshal(roleIDsBytes, &roleIDs)
-			if err != nil {
-				return nil, err
-			}
-		} else if roleIDsStr, ok := roleIDsData.(string); ok {
-			// 如果是字符串，尝试解析JSON
-			err = json.Unmarshal([]byte(roleIDsStr), &roleIDs)
-			if err != nil {
-				return nil, err
-			}
+		roleIDsBytes, ok := roleIDsData.([]byte)
+		if !ok {
+			return nil, fmt.Errorf("用户角色数据格式错误")
+		}
+		err = json.Unmarshal(roleIDsBytes, &roleIDs)
+		if err != nil {
+			return nil, err
 		}
 	}
 
@@ -46,25 +42,16 @@ func (p *testUserRoleProvider) GetUserRoles(ctx context.Context, userID string) 
 		}
 
 		var role core.Role
-		if roleDataBytes, ok := roleData.([]byte); ok {
-			// 如果是字节数组，直接解析
-			err = json.Unmarshal(roleDataBytes, &role)
-			if err != nil {
-				// 如果解析失败，创建简单角色
-				role = core.Role{
-					ID:   roleID,
-					Name: string(roleDataBytes),
-				}
-			}
-		} else if roleDataStr, ok := roleData.(string); ok {
-			// 如果是字符串，尝试解析JSON
-			err = json.Unmarshal([]byte(roleDataStr), &role)
-			if err != nil {
-				// 如果解析失败，创建简单角色
-				role = core.Role{
-					ID:   roleID,
-					Name: roleDataStr,
-				}
+		roleDataBytes, ok := roleData.([]byte)
+		if !ok {
+			continue
+		}
+		err = json.Unmarshal(roleDataBytes, &role)
+		if err != nil {
+			// 如果解析失败，创建简单角色
+			role = core.Role{
+				ID:   roleID,
+				Name: string(roleDataBytes),
 			}
 		}
 		roles = append(roles, role)

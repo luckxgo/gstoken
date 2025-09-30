@@ -178,11 +178,16 @@ func (s *Service) LogoutByUserID(ctx context.Context, userID string) error {
 			continue
 		}
 
+		tokenBytes, ok := tokenData.([]byte)
+		if !ok {
+			continue
+		}
+
+		// 反序列化 JSON 字符串
 		var token string
-		if tokenBytes, ok := tokenData.([]byte); ok {
+		if err := json.Unmarshal(tokenBytes, &token); err != nil {
+			// 如果反序列化失败，尝试直接使用字节数组
 			token = string(tokenBytes)
-		} else {
-			token = fmt.Sprintf("%v", tokenData)
 		}
 
 		// 删除会话
@@ -212,16 +217,13 @@ func (s *Service) GetLoginInfo(ctx context.Context, token string) (*core.LoginIn
 	}
 
 	var loginInfo core.LoginInfo
-	if dataBytes, ok := data.([]byte); ok {
-		if err := json.Unmarshal(dataBytes, &loginInfo); err != nil {
-			return nil, fmt.Errorf("解析登录信息失败: %w", err)
-		}
-	} else {
-		// 处理其他类型的数据
-		dataStr := fmt.Sprintf("%v", data)
-		if err := json.Unmarshal([]byte(dataStr), &loginInfo); err != nil {
-			return nil, fmt.Errorf("解析登录信息失败: %w", err)
-		}
+	dataBytes, ok := data.([]byte)
+	if !ok {
+		return nil, fmt.Errorf("存储数据格式错误，期望字节数组")
+	}
+
+	if err := json.Unmarshal(dataBytes, &loginInfo); err != nil {
+		return nil, fmt.Errorf("解析登录信息失败: %w", err)
 	}
 
 	return &loginInfo, nil
@@ -259,11 +261,16 @@ func (s *Service) kickOutSameDevice(ctx context.Context, userID, device string) 
 			continue
 		}
 
+		tokenBytes, ok := tokenData.([]byte)
+		if !ok {
+			continue
+		}
+
+		// 反序列化 JSON 字符串
 		var token string
-		if tokenBytes, ok := tokenData.([]byte); ok {
+		if err := json.Unmarshal(tokenBytes, &token); err != nil {
+			// 如果反序列化失败，尝试直接使用字节数组
 			token = string(tokenBytes)
-		} else {
-			token = fmt.Sprintf("%v", tokenData)
 		}
 
 		// 获取会话详情
@@ -284,23 +291,15 @@ func (s *Service) kickOutSameDevice(ctx context.Context, userID, device string) 
 // storeLoginInfo 存储登录信息
 func (s *Service) storeLoginInfo(ctx context.Context, token string, loginInfo *core.LoginInfo) error {
 	loginKey := s.keyService.LoginInfoKey(token)
-	data, err := json.Marshal(loginInfo)
-	if err != nil {
-		return err
-	}
-
-	return s.storage.Set(ctx, loginKey, data, s.config.TokenExpire)
+	// 直接存储 loginInfo 对象，让 storage.Set 内部进行 JSON 序列化
+	return s.storage.Set(ctx, loginKey, loginInfo, s.config.TokenExpire)
 }
 
 // storeRefreshToken 存储刷新Token信息
 func (s *Service) storeRefreshToken(ctx context.Context, refreshToken string, refreshInfo *core.RefreshTokenInfo) error {
 	refreshKey := s.keyService.RefreshTokenKey(refreshToken)
-	data, err := json.Marshal(refreshInfo)
-	if err != nil {
-		return err
-	}
-
-	return s.storage.Set(ctx, refreshKey, data, s.config.RefreshExpire)
+	// 直接存储 refreshInfo 对象，让 storage.Set 内部进行 JSON 序列化
+	return s.storage.Set(ctx, refreshKey, refreshInfo, s.config.RefreshExpire)
 }
 
 // getRefreshTokenInfo 获取刷新Token信息
@@ -316,15 +315,13 @@ func (s *Service) getRefreshTokenInfo(ctx context.Context, refreshToken string) 
 	}
 
 	var refreshInfo core.RefreshTokenInfo
-	if dataBytes, ok := data.([]byte); ok {
-		if err := json.Unmarshal(dataBytes, &refreshInfo); err != nil {
-			return nil, fmt.Errorf("解析刷新Token信息失败: %w", err)
-		}
-	} else {
-		dataStr := fmt.Sprintf("%v", data)
-		if err := json.Unmarshal([]byte(dataStr), &refreshInfo); err != nil {
-			return nil, fmt.Errorf("解析刷新Token信息失败: %w", err)
-		}
+	dataBytes, ok := data.([]byte)
+	if !ok {
+		return nil, fmt.Errorf("存储数据格式错误，期望字节数组")
+	}
+
+	if err := json.Unmarshal(dataBytes, &refreshInfo); err != nil {
+		return nil, fmt.Errorf("解析刷新Token信息失败: %w", err)
 	}
 
 	return &refreshInfo, nil

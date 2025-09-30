@@ -3,8 +3,9 @@ package storage
 import (
 	"context"
 	"encoding/json"
-	"github.com/luckxgo/gstoken/core"
 	"time"
+
+	"github.com/luckxgo/gstoken/core"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -45,9 +46,9 @@ func (r *RedisStorage) Get(ctx context.Context, key string) (interface{}, error)
 		return nil, err
 	}
 
-	var result interface{}
-	err = json.Unmarshal([]byte(data), &result)
-	return result, err
+	// 返回字节数组，保持与 Set 方法存储格式的一致性
+	// Set 方法存储的是 JSON 序列化后的字节数组，Get 应该返回相同格式
+	return []byte(data), nil
 }
 
 // Delete 删除键
