@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![GSToken Logo](https://img.shields.io/badge/GSToken-v1.2.0-blue.svg)
+![GSToken Logo](https://img.shields.io/badge/GSToken-v1.2.2-blue.svg)
 ![Go Version](https://img.shields.io/badge/Go-1.18+-00ADD8.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)
@@ -386,6 +386,8 @@ go test -cover ./...
 
 ## 📈 版本历史
 
+- v1.2.2 (2025-09-30) - 新增 Gin 中间件 RequireRoleOrPermission（角色或权限任一满足即可放行）；SkipPaths 支持通配与软认证；Redis 集群与连接参数扩展；Keys 改为 SCAN；完善测试与文档
+- v1.2.1 (2025-09-30) - 支持 Redis 集群（UniversalClient），扩展连接参数（重试、超时、连接池、TLS、用户名/客户端名），Keys 改为 SCAN；文档与示例同步
 - v1.2.0 (2025-09-30) - AutoRenew 按配置生效并同步更新 LoginInfo；RememberDays 支持刷新令牌；新增自动续期与记住登录测试；Redis 不可用环境稳健跳过集成测试
 
 
