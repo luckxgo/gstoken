@@ -189,9 +189,20 @@ func (m *GinAuthMiddleware) RequireAllRoles(roles ...string) gin.HandlerFunc {
 	}
 }
 
-// OptionalAuth 可选认证的 Gin 中间件
+/*
+*
+OptionalAuth 可选认证的 Gin 中间件
+*/
 func (m *GinAuthMiddleware) OptionalAuth() gin.HandlerFunc {
 	middlewareFunc := m.BaseAuthMiddleware.OptionalAuth()
+	return func(c *gin.Context) {
+		middlewareFunc(NewGinContext(c))
+	}
+}
+
+// RequireRoleOrPermission 任意满足角色或权限即放行（Gin 适配）
+func (m *GinAuthMiddleware) RequireRoleOrPermission(roles []string, perms []string) gin.HandlerFunc {
+	middlewareFunc := m.BaseAuthMiddleware.RequireRoleOrPermission(roles, perms)
 	return func(c *gin.Context) {
 		middlewareFunc(NewGinContext(c))
 	}

@@ -86,6 +86,9 @@ type AuthMiddleware interface {
 	// RequireAllRoles 要求所有角色的中间件
 	RequireAllRoles(roles ...string) MiddlewareFunc
 
+	// RequireRoleOrPermission 任意满足角色或权限即放行
+	RequireRoleOrPermission(roles []string, permissions []string) MiddlewareFunc
+
 	// OptionalAuth 可选认证的中间件（不强制要求登录）
 	OptionalAuth() MiddlewareFunc
 }
@@ -510,6 +513,63 @@ func (m *BaseAuthMiddleware) RequireAllRoles(roles ...string) MiddlewareFunc {
 		}
 
 		c.Next()
+	}
+}
+
+// RequireRoleOrPermission 任意满足角色或权限即放行
+func (m *BaseAuthMiddleware) RequireRoleOrPermission(roles []string, permissions []string) MiddlewareFunc {
+	return func(c WebContext) {
+		// SkipPaths 命中：软认证（若有 token 则写入用户信息），但不直接放行
+		if m.shouldSkip(c) {
+			m.softAuth(c)
+		} else {
+			// 强认证
+			token := m.extractToken(c)
+			if token == "" {
+				m.config.UnauthorizedHandler(c, core.ErrTokenNotFound)
+				return
+			}
+			userInfo, err := m.gsToken.Verify(c.GetContext(), token)
+			if err != nil {
+				m.config.UnauthorizedHandler(c, err)
+				return
+			}
+			// 写入上下文
+			c.Set(ContextKeyUserID, userInfo.ID)
+			c.Set(ContextKeyToken, token)
+			c.Set(ContextKeyUserInfo, userInfo)
+		}
+
+		// 读取用户ID（可能来自软认证）
+		userIDVal, ok := c.Get(ContextKeyUserID)
+		if !ok || userIDVal == nil {
+			m.config.UnauthorizedHandler(c, core.ErrTokenNotFound)
+			return
+		}
+		userID := userIDVal.(string)
+
+		// 只要任一满足即可
+		hasAnyRole := false
+		for _, role := range roles {
+			if ok, err := m.gsToken.CheckRole(c.GetContext(), userID, role); err == nil && ok {
+				hasAnyRole = true
+				break
+			}
+		}
+		hasAnyPerm := false
+		for _, p := range permissions {
+			if ok, err := m.gsToken.CheckPermission(c.GetContext(), userID, p); err == nil && ok {
+				hasAnyPerm = true
+				break
+			}
+		}
+
+		if hasAnyRole || hasAnyPerm {
+			c.Next()
+			return
+		}
+
+		m.config.ForbiddenHandler(c, core.ErrPermissionDenied)
 	}
 }
 
