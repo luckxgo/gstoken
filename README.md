@@ -347,7 +347,7 @@ gstoken/
 ├── token/             # Token生成器
 │   └── generator.go   # Token生成器
 ├── web/               # Web框架适配
-│   ├── gin_helper.go  # Gin辅助函数
+│   ├── context_helper.go  # 通用上下文辅助（当前实现基于 Gin）
 │   └── constants.go   # Web常量
 ├── test/              # 测试文件
 ├── examples/          # 示例代码
