@@ -11,11 +11,15 @@ import (
 // GinContext Gin 框架的 WebContext 实现
 type GinContext struct {
 	*gin.Context
+	ctx context.Context // 用于存储标准库 context 值
 }
 
 // NewGinContext 创建 Gin 上下文适配器
 func NewGinContext(c *gin.Context) *GinContext {
-	return &GinContext{Context: c}
+	return &GinContext{
+		Context: c,
+		ctx:     c.Request.Context(),
+	}
 }
 
 // GetHeader 获取请求头
@@ -76,17 +80,30 @@ func (c *GinContext) AbortWithJSON(code int, obj interface{}) {
 
 // Set 设置上下文值
 func (c *GinContext) Set(key string, value interface{}) {
+	// 设置到 Gin 上下文
 	c.Context.Set(key, value)
+	// 同时设置到标准库 context
+	c.ctx = context.WithValue(c.ctx, key, value)
+	// 更新请求的 context
+	c.Context.Request = c.Context.Request.WithContext(c.ctx)
 }
 
 // Get 获取上下文值
 func (c *GinContext) Get(key string) (interface{}, bool) {
-	return c.Context.Get(key)
+	// 优先从 Gin 上下文获取
+	if value, exists := c.Context.Get(key); exists {
+		return value, true
+	}
+	// 如果 Gin 上下文中没有，尝试从标准库 context 获取
+	if value := c.ctx.Value(key); value != nil {
+		return value, true
+	}
+	return nil, false
 }
 
 // GetContext 获取原始 context.Context
 func (c *GinContext) GetContext() context.Context {
-	return c.Context.Request.Context()
+	return c.ctx
 }
 
 // GetRequest 获取原始 HTTP 请求
