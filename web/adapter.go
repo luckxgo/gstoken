@@ -189,6 +189,27 @@ func (m *BaseAuthMiddleware) extractToken(c WebContext) string {
 	return ""
 }
 
+ // softAuth 在不强制鉴权情况下尽可能提取用户信息（不阻断流程）
+func (m *BaseAuthMiddleware) softAuth(c WebContext) {
+	token := m.extractToken(c)
+	if token == "" {
+		return
+	}
+	if userInfo, err := m.gsToken.Verify(c.GetContext(), token); err == nil && userInfo != nil {
+		// 将用户信息存储到上下文
+		c.Set(ContextKeyUserID, userInfo.ID)
+		c.Set(ContextKeyToken, token)
+		c.Set(ContextKeyUserInfo, userInfo)
+
+		// 如果配置了用户信息提取器，获取完整用户信息
+		if m.config.UserInfoExtractor != nil {
+			if ui, err := m.config.UserInfoExtractor(c.GetContext(), token); err == nil && ui != nil {
+				c.Set(ContextKeyUserInfo, ui)
+			}
+		}
+	}
+}
+
 // shouldSkip 检查是否应该跳过认证
 func (m *BaseAuthMiddleware) shouldSkip(c WebContext) bool {
 	reqPath := c.GetRequest().URL.Path
@@ -218,6 +239,8 @@ func (m *BaseAuthMiddleware) shouldSkip(c WebContext) bool {
 func (m *BaseAuthMiddleware) RequireAuth() MiddlewareFunc {
 	return func(c WebContext) {
 		if m.shouldSkip(c) {
+			// 跳过强制鉴权，但若携带 token，则尝试提取用户信息
+			m.softAuth(c)
 			c.Next()
 			return
 		}
@@ -255,6 +278,8 @@ func (m *BaseAuthMiddleware) RequireAuth() MiddlewareFunc {
 func (m *BaseAuthMiddleware) RequirePermission(permission string) MiddlewareFunc {
 	return func(c WebContext) {
 		if m.shouldSkip(c) {
+			// 跳过强制鉴权，但若携带 token，则尝试提取用户信息
+			m.softAuth(c)
 			c.Next()
 			return
 		}
