@@ -3,6 +3,7 @@ package gstoken
 import (
 	"context"
 	"fmt"
+
 	"github.com/luckxgo/gstoken/auth"
 	"github.com/luckxgo/gstoken/core"
 	"github.com/luckxgo/gstoken/storage"
@@ -86,6 +87,26 @@ func (gs *GSToken) Login(ctx context.Context, req *core.LoginRequest) (*core.Log
 
 // Logout 用户登出
 func (gs *GSToken) Logout(ctx context.Context, token string) error {
+	return gs.engine.Logout(ctx, token)
+}
+
+// LogoutFromContext 从上下文获取 token 进行用户登出
+func (gs *GSToken) LogoutFromContext(ctx context.Context) error {
+	// 从上下文中获取 token
+	tokenValue := ctx.Value("token")
+	if tokenValue == nil {
+		return fmt.Errorf("token not found in context")
+	}
+
+	token, ok := tokenValue.(string)
+	if !ok {
+		return fmt.Errorf("token in context is not a string")
+	}
+
+	if token == "" {
+		return fmt.Errorf("token in context is empty")
+	}
+
 	return gs.engine.Logout(ctx, token)
 }
 

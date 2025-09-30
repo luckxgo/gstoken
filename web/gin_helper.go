@@ -1,6 +1,11 @@
 package web
 
-import "github.com/gin-gonic/gin"
+import (
+	"context"
+	"fmt"
+
+	"github.com/gin-gonic/gin"
+)
 
 // GinHelper Gin 框架的辅助函数
 type GinHelper struct{}
@@ -46,6 +51,24 @@ func (h *GinHelper) MustGetToken(c *gin.Context) string {
 		panic(ContextKeyToken + " not found in context")
 	}
 	return token
+}
+
+// LogoutFromGinContext 从 Gin 上下文中获取 token 并执行登出
+// 需要传入 GSToken 实例来执行实际的登出操作
+func (h *GinHelper) LogoutFromGinContext(c *gin.Context, gs interface {
+	LogoutFromContext(ctx context.Context) error
+}) error {
+	// 从 Gin 上下文获取 token 并设置到标准库 context 中
+	token, exists := h.GetToken(c)
+	if !exists {
+		return fmt.Errorf("token not found in gin context")
+	}
+
+	// 创建包含 token 的上下文
+	ctx := context.WithValue(c.Request.Context(), "token", token)
+
+	// 执行登出
+	return gs.LogoutFromContext(ctx)
 }
 
 // 全局 Gin 辅助实例
