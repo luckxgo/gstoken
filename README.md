@@ -99,10 +99,10 @@ func main() {
         panic(err)
     }
     
-    fmt.Printf("登录成功，Token: %s\n", loginResp.AccessToken)
+    fmt.Printf("登录成功，Token: %s\n", loginResp.Token)
     
     // 4. Token验证
-    userInfo, err := gs.Verify(ctx, loginResp.AccessToken)
+    userInfo, err := gs.GetAuthEngine().Verify(ctx, loginResp.Token)
     if err != nil {
         panic(err)
     }
@@ -110,11 +110,14 @@ func main() {
     fmt.Printf("用户信息: %+v\n", userInfo)
     
     // 5. 权限检查
-    hasPermission := gs.CheckPermission(ctx, "user123", "user:read")
+    hasPermission, err := gs.CheckPermission(ctx, "user123", "user:read")
+    if err != nil {
+        panic(err)
+    }
     fmt.Printf("是否有权限: %v\n", hasPermission)
     
     // 6. 用户登出
-    err = gs.Logout(ctx, loginResp.AccessToken)
+    err = gs.Logout(ctx, loginResp.Token)
     if err != nil {
         panic(err)
     }
@@ -132,6 +135,7 @@ import (
     "github.com/gin-gonic/gin"
     "github.com/luckxgo/gstoken"
     "github.com/luckxgo/gstoken/config"
+    "github.com/luckxgo/gstoken/core"
     "github.com/luckxgo/gstoken/web"
 )
 
@@ -139,9 +143,6 @@ func main() {
     // 初始化GSToken
     cfg := config.DefaultConfig()
     gs := gstoken.New(cfg)
-    
-    // 设置全局实例
-    web.SetGlobalGSToken(gs)
     
     r := gin.Default()
     
@@ -166,11 +167,37 @@ func main() {
     
     // 需要认证的路由组
     auth := r.Group("/api")
-    auth.Use(web.GinAuthMiddleware())
+    auth.Use(func(c *gin.Context) {
+        // 从请求头获取Token
+        token := c.GetHeader("Authorization")
+        if token == "" {
+            token = c.GetHeader("X-Token")
+        }
+        if token == "" {
+            c.JSON(401, gin.H{"error": "未提供认证Token"})
+            c.Abort()
+            return
+        }
+        
+        // 验证Token
+        userInfo, err := gs.GetAuthEngine().Verify(c, token)
+        if err != nil {
+            c.JSON(401, gin.H{"error": "Token验证失败"})
+            c.Abort()
+            return
+        }
+        
+        // 设置上下文
+        c.Set(web.ContextKeyUserID, userInfo.ID)
+        c.Set(web.ContextKeyToken, token)
+        c.Set(web.ContextKeyUserInfo, userInfo)
+        
+        c.Next()
+    })
     {
         auth.GET("/profile", func(c *gin.Context) {
-            userID := web.GetUserID(c)
-            userInfo := web.GetUserInfo(c)
+            userID, _ := c.Get(web.ContextKeyUserID)
+            userInfo, _ := c.Get(web.ContextKeyUserInfo)
             
             c.JSON(200, gin.H{
                 "user_id": userID,
@@ -179,7 +206,10 @@ func main() {
         })
         
         auth.POST("/logout", func(c *gin.Context) {
-            web.Logout(c)
+            token, _ := c.Get(web.ContextKeyToken)
+            if tokenStr, ok := token.(string); ok {
+                gs.Logout(c, tokenStr)
+            }
             c.JSON(200, gin.H{"message": "登出成功"})
         })
     }
@@ -253,14 +283,21 @@ GSToken 支持6种内置Token风格：
 
 ```go
 // 注册自定义Token生成函数
-gs.GetTokenGenerator().RegisterCustomFunc(func(extra map[string]interface{}) (string, error) {
-    userID := extra["user_id"].(string)
+generator := gs.GetTokenGenerator()
+err := generator.RegisterCustomFunc(func(extra map[string]interface{}) (string, error) {
+    userID := extra[core.TokenExtraKeyUserID].(string)
     timestamp := time.Now().Unix()
     return fmt.Sprintf("USER_%s_%d", userID, timestamp), nil
 })
+if err != nil {
+    panic(err)
+}
 
 // 使用自定义风格
-cfg.TokenStyle = core.StyleCustom
+err = generator.SetStyle(core.StyleCustom)
+if err != nil {
+    panic(err)
+}
 ```
 
 ## 🏗️ 项目架构
