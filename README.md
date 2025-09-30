@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![GSToken Logo](https://img.shields.io/badge/GSToken-v1.1.2-blue.svg)
+![GSToken Logo](https://img.shields.io/badge/GSToken-v1.2.0-blue.svg)
 ![Go Version](https://img.shields.io/badge/Go-1.18+-00ADD8.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)
@@ -369,6 +369,9 @@ go test -cover ./...
 - **问题反馈:** [Issues](https://github.com/luckxgo/gstoken/issues)
 
 ## 📈 版本历史
+
+- v1.2.0 (2025-09-30) - AutoRenew 按配置生效并同步更新 LoginInfo；RememberDays 支持刷新令牌；新增自动续期与记住登录测试；Redis 不可用环境稳健跳过集成测试
+
 
 - **v1.1.2** (2024-09-30) - 魔法值重构优化，提升代码质量
 - **v1.1.1** (2024-09-25) - 问题修复和性能优化
