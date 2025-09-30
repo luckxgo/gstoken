@@ -100,7 +100,11 @@ config := &web.AuthConfig{
     TokenHeader: web.HeaderXToken,        // 使用 X-Token 头
     TokenQuery:  web.QueryParamToken,     // 支持查询参数
     TokenPrefix: "",                      // 不使用前缀
-    SkipPaths:   []string{"/health"},     // 跳过健康检查
+    // SkipPaths 支持精确匹配、前缀与通配符：
+    // - "/health" 精确匹配
+    // - "/public/*" 前缀匹配，以 /public/ 开头
+    // - "/static/*.js"、"/api/user??" 通配符匹配
+    SkipPaths:   []string{"/health", "/public/*"},
     UnauthorizedHandler: func(c web.WebContext, err error) {
         c.AbortWithJSON(401, map[string]interface{}{
             "error":           web.ErrorUnauthorized,

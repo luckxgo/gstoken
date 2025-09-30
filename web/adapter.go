@@ -3,6 +3,8 @@ package web
 import (
 	"context"
 	"net/http"
+	"path"
+	"strings"
 
 	"github.com/luckxgo/gstoken/core"
 )
@@ -189,10 +191,24 @@ func (m *BaseAuthMiddleware) extractToken(c WebContext) string {
 
 // shouldSkip 检查是否应该跳过认证
 func (m *BaseAuthMiddleware) shouldSkip(c WebContext) bool {
-	path := c.GetRequest().URL.Path
-	for _, skipPath := range m.config.SkipPaths {
-		if path == skipPath {
+	reqPath := c.GetRequest().URL.Path
+	for _, pat := range m.config.SkipPaths {
+		// 精确匹配
+		if reqPath == pat {
 			return true
+		}
+		// 通配符匹配（* 或 ?）
+		if strings.ContainsAny(pat, "*?") {
+			if ok, _ := path.Match(pat, reqPath); ok {
+				return true
+			}
+		}
+		// 前缀匹配：以 /* 结尾表示前缀
+		if strings.HasSuffix(pat, "/*") {
+			prefix := strings.TrimSuffix(pat, "/*")
+			if strings.HasPrefix(reqPath, prefix+"/") || reqPath == prefix {
+				return true
+			}
 		}
 	}
 	return false
